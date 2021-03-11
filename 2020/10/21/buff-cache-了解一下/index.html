@@ -1,0 +1,99 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="format-detection" content="telephone=no"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><link rel="icon" href="/images/icons/favicon-16x16.png?v=2.1.1" type="image/png" sizes="16x16"><link rel="icon" href="/images/icons/favicon-32x32.png?v=2.1.1" type="image/png" sizes="32x32"><meta name="description" content="转载：http:&#x2F;&#x2F;blog.chinaunix.net&#x2F;uid-24020646-id-2939696.html  细心的朋友会注意到,当你在linux下频繁存取文件后,物理内存会很快被用光,当程序结束后,内存不会被正常释放,而是一直作为caching.这个问题,貌似有不少人在问,不过都没有看到有什么很好解决的办法.那么我来谈谈这个问题. 先来说说free命令 [root@server ~]#">
+<meta property="og:type" content="article">
+<meta property="og:title" content="buff&#x2F;cache 了解一下">
+<meta property="og:url" content="http://zhho.cn/2020/10/21/buff-cache-%E4%BA%86%E8%A7%A3%E4%B8%80%E4%B8%8B/index.html">
+<meta property="og:site_name" content="Hao&#39;s blog">
+<meta property="og:description" content="转载：http:&#x2F;&#x2F;blog.chinaunix.net&#x2F;uid-24020646-id-2939696.html  细心的朋友会注意到,当你在linux下频繁存取文件后,物理内存会很快被用光,当程序结束后,内存不会被正常释放,而是一直作为caching.这个问题,貌似有不少人在问,不过都没有看到有什么很好解决的办法.那么我来谈谈这个问题. 先来说说free命令 [root@server ~]#">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2020-10-21T01:50:08.000Z">
+<meta property="article:modified_time" content="2020-10-23T08:32:26.436Z">
+<meta property="article:author" content="Hao Zhang">
+<meta name="twitter:card" content="summary"><title>buff/cache 了解一下 | Hao's blog</title><link ref="canonical" href="http://zhho.cn/2020/10/21/buff-cache-%E4%BA%86%E8%A7%A3%E4%B8%80%E4%B8%8B/"><link rel="dns-prefetch" href="https://cdn.jsdelivr.net"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.12.1/css/all.min.css" type="text/css"><link rel="stylesheet" href="/css/index.css?v=2.1.1"><script>var Stun = window.Stun || {};
+var CONFIG = {
+  root: '/',
+  algolia: undefined,
+  fontIcon: {"prompt":{"success":"fas fa-check-circle","info":"fas fa-arrow-circle-right","warning":"fas fa-exclamation-circle","error":"fas fa-times-circle"},"copyBtn":"fas fa-copy"},
+  sidebar: {"offsetTop":"20px","tocMaxDepth":6},
+  header: {"enable":true,"showOnPost":true,"scrollDownIcon":false},
+  postWidget: {"endText":true},
+  nightMode: {"enable":true},
+  back2top: {"enable":true},
+  codeblock: {"style":"default","highlight":"light","wordWrap":false},
+  reward: false,
+  fancybox: false,
+  zoomImage: {"gapAside":"20px"},
+  galleryWaterfall: undefined,
+  lazyload: false,
+  pjax: undefined,
+  externalLink: {"icon":{"enable":true,"name":"fas fa-external-link-alt"}},
+  shortcuts: undefined,
+  prompt: {"copyButton":"Copy","copySuccess":"Copy Success","copyError":"Copy Error"},
+  sourcePath: {"js":"js","css":"css","images":"images"},
+};
+
+window.CONFIG = CONFIG;</script><meta name="generator" content="Hexo 5.1.1"></head><body><div class="container" id="container"><header class="header" id="header"><div class="header-inner"><nav class="header-nav header-nav--fixed"><div class="header-nav-inner"><div class="header-nav-menubtn"><i class="fas fa-bars"></i></div><div class="header-nav-menu"><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="/"><span class="header-nav-menu-item__icon"><i class="fas fa-home"></i></span><span class="header-nav-menu-item__text">Home</span></a></div><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="/archives/"><span class="header-nav-menu-item__icon"><i class="fas fa-folder-open"></i></span><span class="header-nav-menu-item__text">Archives</span></a></div><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="/categories/"><span class="header-nav-menu-item__icon"><i class="fas fa-layer-group"></i></span><span class="header-nav-menu-item__text">Categories</span></a></div><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="/tags/"><span class="header-nav-menu-item__icon"><i class="fas fa-tags"></i></span><span class="header-nav-menu-item__text">Tags</span></a></div></div><div class="header-nav-mode"><div class="mode"><div class="mode-track"><span class="mode-track-moon"></span><span class="mode-track-sun"></span></div><div class="mode-thumb"></div></div></div></div></nav><div class="header-banner"><div class="header-banner-info"><div class="header-banner-info__title">Hao's blog</div><div class="header-banner-info__subtitle">No pains ,no gains</div></div></div></div></header><main class="main" id="main"><div class="main-inner"><div class="content-wrap" id="content-wrap"><div class="content" id="content"><!-- Just used to judge whether it is an article page--><div id="is-post"></div><div class="post"><header class="post-header"><h1 class="post-title">buff/cache 了解一下</h1><div class="post-meta"><span class="post-meta-item post-meta-item--createtime"><span class="post-meta-item__icon"><i class="far fa-calendar-plus"></i></span><span class="post-meta-item__info">Created</span><span class="post-meta-item__value">2020-10-21</span></span><span class="post-meta-item post-meta-item--updatetime"><span class="post-meta-item__icon"><i class="far fa-calendar-check"></i></span><span class="post-meta-item__info">Updated</span><span class="post-meta-item__value">2020-10-23</span></span></div></header><div class="post-body"><p>转载：<span class="exturl"><a class="exturl__link"   target="_blank" rel="noopener" href="http://blog.chinaunix.net/uid-24020646-id-2939696.html" >http://blog.chinaunix.net/uid-24020646-id-2939696.html</a><span class="exturl__icon"><i class="fas fa-external-link-alt"></i></span></span> </p>
+<p>细心的朋友会注意到,当你在linux下频繁存取文件后,物理内存会很快被用光,当程序结束后,内存不会被正常释放,而是一直作为caching.这个问题,貌似有不少人在问,不过都没有看到有什么很好解决的办法.那么我来谈谈这个问题.</p>
+<p>先来说说free命令</p>
+<p>[root@server ~]# free -m<br>          total    used    free   shared  buffers   cached<br>Mem:      249    163     86     0     10       94<br>-/+ buffers/cache:     58    191<br>Swap:     511     0      511</p>
+<p>其中:</p>
+<p>total 内存总数</p>
+<p>used 已经使用的内存数</p>
+<p>free 空闲的内存数</p>
+<p>shared 多个进程共享的内存总额</p>
+<p>buffers Buffer Cache和cached Page Cache 磁盘缓存的大小</p>
+<p>-buffers/cache 的内存数:used - buffers - cached</p>
+<p>+buffers/cache 的内存数:free + buffers + cached</p>
+<p>可用的memory=free memory+buffers+cached</p>
+<p>有了这个基础后,可以得知,我现在used为163MB,free为86,buffer和cached分别为10,94</p>
+<p>那么我们来看看,如果我执行复制文件,内存会发生什么变化.</p>
+<a id="more"></a>
+
+<p>[root@server ~]# cp -r /etc ~/test/<br>[root@server ~]# free -m<br>          total    used    free   shared  buffers   cached<br>Mem:      249    244     4     0     8       174<br>-/+ buffers/cache:     62    187<br>Swap:     511     0      511</p>
+<p>在我命令执行结束后,used为244MB,free为4MB,buffers为8MB,cached为174MB,天呐都被cached吃掉了.别紧张,这是为了提高文件读取效率的做法.</p>
+<p>为了提高磁盘存取效率, Linux做了一些精心的设计, 除了对dentry进行缓存(用于VFS,加速文件路径名到inode的转换), 还采取了两种主要Cache方式：Buffer Cache和Page Cache。前者针对磁盘块的读写，后者针对文件inode的读写。这些Cache有效缩短了 I/O系统调用(比如read,write,getdents)的时间。”</p>
+<!--more-->
+
+<p>那么有人说过段时间,linux会自动释放掉所用的内存,我们使用free再来试试,看看是否有释放&gt;?</p>
+<p>[root@server test]# free -m<br>          total    used    free   shared  buffers   cached<br>Mem:      249    244     5     0     8       174<br>-/+ buffers/cache:     61    188<br>Swap:     511     0      511</p>
+<p>MS没有任何变化,那么我能否手动释放掉这些内存呢???回答是可以的!</p>
+<p>/proc是一个虚拟文件系统,我们可以通过对它的读写操作做为与kernel实体间进行通信的一种手段.也就是说可以通过修改/proc中的文件,来对当前kernel的行为做出调整.那么我们可以通过调整/proc/sys/vm/drop_caches来释放内存.操作如下:</p>
+<p>[root@server test]# cat /proc/sys/vm/drop_caches<br>0<br>首先,/proc/sys/vm/drop_caches的值,默认为0</p>
+<p>[root@server test]# sync</p>
+<p>手动执行sync命令(描述:sync 命令运行 sync 子例程。如果必须停止系统，则运行 sync 命令以确保文件系统的完整性。sync 命令将所有未写的系统缓冲区写到磁盘中，包含已修改的 i-node、已延迟的块 I/O 和读写映射文件)</p>
+<p>[root@server test]# echo 3 &gt; /proc/sys/vm/drop_caches<br>[root@server test]# cat /proc/sys/vm/drop_caches<br>3</p>
+<p>将/proc/sys/vm/drop_caches值设为3</p>
+<p>[root@server test]# free -m<br>          total    used    free   shared  buffers   cached<br>Mem:      249     66    182     0     0      11<br>-/+ buffers/cache:     55    194<br>Swap:     511     0      511</p>
+<p>再来运行free命令,发现现在的used为66MB,free为182MB,buffers为0MB,cached为11MB.那么有效的释放了buffer和cache.</p>
+<p>有关/proc/sys/vm/drop_caches的用法在下面进行了说明</p>
+<p>/proc/sys/vm/drop_caches (since Linux 2.6.16)<br>       Writing to this file causes the kernel to drop clean caches,<br>       dentries and inodes from memory, causing that memory to become<br>       free.</p>
+<p>​       To free pagecache, use echo 1 &gt; /proc/sys/vm/drop_caches; to<br>​       free dentries and inodes, use echo 2 &gt; /proc/sys/vm/drop_caches;<br>​       to  free  pagecache,  dentries and inodes, use echo 3 &gt;<br>​       /proc/sys/vm/drop_caches.</p>
+<p>​       Because this is a non-destructive operation and dirty objects<br>​       are not freeable, the user should run sync(8) first.</p>
+<p>=========================================================================</p>
+<p>　　buffer 与cache 的区别</p>
+<p>　　A buffer is something that has yet to be “written” to disk. A cache is something that has been “read” from the disk and stored for later use.</p>
+<p>　　更详细的解释参考：Difference Between Buffer and Cache</p>
+<p>　　<strong>对于共享内存（**</strong>Shared memory**<strong>），主要用于在UNIX</strong> <strong>环境下不同进程之间共享数据，是进程间通信的一种方法，一般的应用程序不会申请使用共享内存</strong>，笔者也没有去验证共享内存对上面等式的影响。如果你有兴趣，请参考：What is Shared Memory?</p>
+<p>　　cache 和 buffer的区别：</p>
+<p>　　<strong>Cache**</strong>：高速缓存，是位于CPU**<strong>与主内存间的一种容量较小但速度很高的存储器。</strong>由于CPU的速度远高于主内存，CPU直接从内存中存取数据要等待一定时间周期，Cache中保存着CPU刚用过或循环使用的一部分数据，当CPU再次使用该部分数据时可从Cache中直接调用,这样就减少了CPU的等待时间,提高了系统的效率。Cache又分为一级Cache(L1 Cache)和二级Cache(L2 Cache)，L1 Cache集成在CPU内部，L2 Cache早期一般是焊在主板上,现在也都集成在CPU内部，常见的容量有256KB或512KB L2 Cache。</p>
+<p>　　<strong>Buffer**</strong>：缓冲区，一个用于存储速度不同步的设备或优先级不同的设备之间传输数据的区域。通过缓冲区，可以使进程之间的相互等待变少，从而使从速度慢的设备读入数据时，速度快的设备的操作进程不发生间断。**</p>
+<p>　　Free中的buffer和cache：（它们都是占用内存）：</p>
+<p>　　buffer : 作为buffer cache的内存，是块设备的读写缓冲区</p>
+<p>　　cache: 作为page cache的内存, 文件系统的cache</p>
+<p>　　如果 cache 的值很大，说明cache住的文件数很多。如果频繁访问到的文件都能被cache住，那么磁盘的读IO bi会非常小。</p>
+<p>==============================================================================================</p>
+<p>cache是高速缓存，用于CPU和内存之间的缓冲；<br>buffer是I/O缓存，用于内存和硬盘的缓冲</p>
+<p>cache最初用于cpu cache, 主要原因是cpu 与memory, 由于cpu快,memory跟不上,且有些值使用次数多,所以放入<br>cache中，主要目的是，重复使用, 并且一级\二级物理cache速度快，<br>buffer　主要用于disk　与 memory，　主要是保护硬盘或减少网络传输的次数（内存数据表现dataSet）．当然也可以提高速度（不会立即写入硬盘或直接从硬盘中读出的数据马上显示），重复使用，最初最主要的目的是保护disk,<br>asp.net的cache有outputcahe与数据cache, 主要目的是　重复使用，提高速度，outputcache主要存储Reader后的页，一般是多次使用同一个HTML，建议不要varybyparam，不要存多version,<br>数据cache,如dataSet, dataTable, 等<br>@page buffer=”true”, 使用buffer，让buffer满后再显示读出或写入，(c中文件输出也是如此,主要目的是保护硬盘), 也可以提高下次的访问速度.  在client browse端表现是: true是一次性显示,要么不显示, 中间等, false是一次显示一些,<br>这在网络输出也是如此表现.<br>对于文件访问c中默认采用的是buffer = true, 这与asp.net一样,<br>相当于Response.write();中当buffer满后输出,以减少网络的传输次数<br>&lt;%@ OutputCache Duration=”60” VaryByParam=”none”%&gt;, 是将asp.net生成的HTML缓存起来，在指定的时间内不需要重新生成html， control.ascx.也有组件缓存(htmlCach)。 dataSet也是如此。DataCache,<br>cache和buffer都是缓冲区， 在翻译上，cache翻译成高速缓冲区要好一点(因为主要是为下次访问加速)， buffer翻译成缓冲区好点。都是缓冲的作用，可目的有点不同，主要是理解，不需要太咬文嚼字.</p>
+<p>cache 和 buffer的区别<br>1, Buffer是缓冲区<br>2, Cache 是高速缓存，分library cache; data dictionary cache; database buffer cache<br>Buffer cache 缓冲区高速缓存，用于缓存从硬盘上读取的数据，减少磁盘I/O.<br>3, buffer有共享SQL区和PL/SQL区 , 数据库缓冲区高速缓存有独立的subcache<br>4, pool  是共享池 用于存储最近执行的语句等<br>5, cache:<br>A cache is a smaller, higher-speed component that is used to speed up the<br>access to commonly used data stored in a lower-speed, higher-capacity<br>component.<br>database buffer cache:<br>The database buffer cache is the portion of the SGA that holds copies of data<br>blocks<br>read from data files. All user processes concurrently (同时地,兼任地)connected<br>to the instance share access to the database buffer cache.<br>buffer cache就是以block为单位读入写出的。</p>
+<p>缓存（cache）是把读取过的数据保存起来，重新读取时若命中（找到需要的数据）就不要去读硬盘了，若没有命中就读硬盘。其中的数据会根据读取频率进行组织，把最频繁读取的内容放在最容易找到的位置，把不再读的内容不断往后排，直至从中删除。<br>缓冲（buffers）是根据磁盘的读写设计的，把分散的写操作集中进行，减少磁盘碎片和硬盘的反复寻道，从而提高系统性能。linux有一个守护进程定期清空缓冲内容（即写如磁盘），也可以通过sync命令手动清空缓冲。举个例子吧：</p>
+<p>我这里有一个ext2的U盘，我往里面cp一个3M的MP3，但U盘的灯没有跳动，过了一会儿（或者手动输入sync）U盘的灯<br>就跳动起来了。卸载设备时会清空缓冲，所以有些时候卸载一个设备时要等上几秒钟。<br>修改/etc/sysctl.conf中的vm.swappiness右边的数字可以在下次开机时调节swap使用策<br>略。该数字范围是0～100，数字越大越倾向于使用swap。默认为60，可以改一下试试。<br>-—————————————-<br>两者都是RAM中的数据。简单来说，buffer是即将要被写入磁盘的，而cache是被从磁盘中<br>读出来的。<br>buffer是由各种进程分配的，被用在如输入队列等方面，一个简单的例子如某个进程要求<br>有多个字段读入，在所有字段被读入完整之前，进程把先前读入的字段放在buffer中保存<br>。<br>cache经常被用在磁盘的I/O请求上，如果有多个进程都要访问某个文件，于是该文件便被<br>做成cache以方便下次被访问，这样可提供系统性能。<br>A buffer is something that has yet to be “written” to disk. A cache is<br>something that has been “read” from the disk and stored for later use.
+　</p>
+<p>更详细的解释参考：Difference Between Buffer and Cache
+　</p>
+<p>  　对于共享内存（Shared memory），主要用于在UNIX 环境下不同进程之间共享数据，<br>是进程间通信的一种方法，一般的应用程序不会申请使用共享内存，笔者也没有去验证共<br>享内存对上面等式的影响。如果你有兴趣，请参考：What is Shared Memory?<br>　　cache 和 buffer的区别：<br>　　Cache：高速缓存，是位于CPU与主内存间的一种容量较小但速度很高的存储器。由于<br>CPU的速度远高于主内存，CPU直接从内存中存取数据要等待一定时间周期， Cache中保存<br>着CPU刚用过或循环使用的一部分数据，当CPU再次使用该部分数据时可从Cache中直接调<br>用,这样就减少了CPU的等待时间,提高了系统的效率。Cache又分为一级Cache(L1 Cache)<br>和二级Cache(L2 Cache)，L1 Cache集成在CPU内部，L2 Cache早期一般是焊在主板上,现<br>在也都集成在CPU内部，常见的容量有256KB或512KB L2 Cache。<br>　　Buffer：缓冲区，一个用于存储速度不同步的设备或优先级不同的设备之间传输数据<br>的区域。通过缓冲区，可以使进程之间的相互等待变少，从而使从速度慢的设备读入数据<br>时，速度快的设备的操作进程不发生间断。<br>　　Free中的buffer和cache：（它们都是占用内存）：<br>　　buffer : 作为buffer cache的内存，是块设备的读写缓冲区<br>　　cache: 作为page cache的内存, 文件系统的cache<br>　　如果 cache 的值很大，说明cache住的文件数很多。如果频繁访问到的文件都能被<br>cache住，那么磁盘的读IO bi会非常小。</p>
+<p>===========================================</p>
+<p># sync<br># echo 1 &gt; /proc/sys/vm/drop_caches<br>   echo 2 &gt; /proc/sys/vm/drop_caches<br>   echo 3 &gt; /proc/sys/vm/drop_caches</p>
+<p>cache释放：<br>To free pagecache:<br>echo 1 &gt; /proc/sys/vm/drop_caches<br>To free dentries and inodes:<br>echo 2 &gt; /proc/sys/vm/drop_caches<br>To free pagecache, dentries and inodes:<br>echo 3 &gt; /proc/sys/vm/drop_caches</p>
+<p>说明，释放前最好sync一下，防止丢数据。</p>
+<p>因为LINUX的内核机制，一般情况下不需要特意去释放已经使用的cache。这些cache起来的内容可以增加文件以及的读写速度。</p>
+<p>======================================================</p>
+</div><footer class="post-footer"><div class="post-ending ending"><div class="ending__text">------ END ------</div></div><div class="post-copyright copyright"><div class="copyright-author"><span class="copyright-author__name">Author: </span><span class="copyright-author__value"><a href="http://zhho.cn">Hao Zhang</a></span></div><div class="copyright-link"><span class="copyright-link__name">Link: </span><span class="copyright-link__value"><a href="http://zhho.cn/2020/10/21/buff-cache-%E4%BA%86%E8%A7%A3%E4%B8%80%E4%B8%8B/">http://zhho.cn/2020/10/21/buff-cache-%E4%BA%86%E8%A7%A3%E4%B8%80%E4%B8%8B/</a></span></div><div class="copyright-notice"><span class="copyright-notice__name">Copyright: </span><span class="copyright-notice__value">All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en" rel="external nofollow" target="_blank">BY-NC-SA</a> unless stating additionally</span></div></div><nav class="post-paginator paginator"><div class="paginator-prev"><a class="paginator-prev__link" href="/2020/10/23/k8s%E5%90%84%E7%B1%BByaml%E6%96%87%E4%BB%B6/"><span class="paginator-prev__icon"><i class="fas fa-angle-left"></i></span><span class="paginator-prev__text">k8s各类yaml文件</span></a></div><div class="paginator-next"><a class="paginator-next__link" href="/2020/10/20/http%E5%B8%B8%E8%A7%81%E7%8A%B6%E6%80%81%E7%A0%81/"><span class="paginator-prev__text">http常见状态码</span><span class="paginator-next__icon"><i class="fas fa-angle-right"></i></span></a></div></nav></footer></div></div></div><div class="sidebar-wrap" id="sidebar-wrap"><aside class="sidebar" id="sidebar"><div class="sidebar-nav"><span class="sidebar-nav-toc current">Catalog</span><span class="sidebar-nav-ov">Overview</span></div><section class="sidebar-toc"></section><!-- ov = overview--><section class="sidebar-ov hide"><div class="sidebar-ov-author"><div class="sidebar-ov-author__avatar"><img class="sidebar-ov-author__avatar_img" src="/images/icons/stun-logo.svg" alt="avatar"></div><p class="sidebar-ov-author__text">Meteor across</p></div><div class="sidebar-ov-state"><a class="sidebar-ov-state-item sidebar-ov-state-item--posts" href="/archives/"><div class="sidebar-ov-state-item__count">24</div><div class="sidebar-ov-state-item__name">Archives</div></a><a class="sidebar-ov-state-item sidebar-ov-state-item--categories" href="/categories/"><div class="sidebar-ov-state-item__count">0</div><div class="sidebar-ov-state-item__name">Categories</div></a><a class="sidebar-ov-state-item sidebar-ov-state-item--tags" href="/tags/"><div class="sidebar-ov-state-item__count">0</div><div class="sidebar-ov-state-item__name">Tags</div></a></div><div class="sidebar-ov-cc"><a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en" target="_blank" rel="noopener" data-popover="Creative Commons" data-popover-pos="up"><img src="/images/cc-by-nc-sa.svg"></a></div></section><div class="sidebar-reading"><div class="sidebar-reading-info"><span class="sidebar-reading-info__text">You have read </span><span class="sidebar-reading-info__num">0</span></div><div class="sidebar-reading-line"></div></div></aside></div><div class="clearfix"></div></div></main><footer class="footer" id="footer"><div class="footer-inner"><div><span>Copyright © 2021</span><span class="footer__icon"><i class="fas fa-heart"></i></span><span>Hao Zhang</span></div><div><span>Powered by <a href="http://hexo.io/" title="Hexo" target="_blank" rel="noopener">Hexo</a></span><span> v5.1.1</span><span class="footer__devider">|</span><span>Theme - <a href="https://github.com/liuyib/hexo-theme-stun/" title="Stun" target="_blank" rel="noopener">Stun</a></span><span> v2.1.1</span></div></div></footer><div class="loading-bar" id="loading-bar"><div class="loading-bar__progress"></div></div><div class="back2top" id="back2top"><span class="back2top__icon"><i class="fas fa-rocket"></i></span></div></div><script src="https://cdn.jsdelivr.net/npm/jquery@v3.4.1/dist/jquery.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-animate@1.5.2/velocity.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-animate@1.5.2/velocity.ui.min.js"></script><script src="/js/utils.js?v=2.1.1"></script><script src="/js/stun-boot.js?v=2.1.1"></script><script src="/js/scroll.js?v=2.1.1"></script><script src="/js/header.js?v=2.1.1"></script><script src="/js/sidebar.js?v=2.1.1"></script></body></html>

@@ -1,0 +1,191 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="format-detection" content="telephone=no"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><link rel="icon" href="/images/icons/favicon-16x16.png?v=2.1.1" type="image/png" sizes="16x16"><link rel="icon" href="/images/icons/favicon-32x32.png?v=2.1.1" type="image/png" sizes="32x32"><meta name="description" content="haproxy实现会话保持(1):cookie       HAProxy系列文章：\http:&#x2F;&#x2F;www.cnblogs.com&#x2F;f-ck-need-u&#x2F;p&#x2F;7576137.html****                      1.反向代理为什么需要设置cookie       任何一个七层的http负载均衡器，都应该具备一个功能：会话保持。会话保持是保证客户端对动态">
+<meta property="og:type" content="article">
+<meta property="og:title" content="haproxy实现会话保持:cookie">
+<meta property="og:url" content="http://zhho.cn/2020/12/01/haproxy%E5%AE%9E%E7%8E%B0%E4%BC%9A%E8%AF%9D%E4%BF%9D%E6%8C%81-cookie/index.html">
+<meta property="og:site_name" content="Hao&#39;s blog">
+<meta property="og:description" content="haproxy实现会话保持(1):cookie       HAProxy系列文章：\http:&#x2F;&#x2F;www.cnblogs.com&#x2F;f-ck-need-u&#x2F;p&#x2F;7576137.html****                      1.反向代理为什么需要设置cookie       任何一个七层的http负载均衡器，都应该具备一个功能：会话保持。会话保持是保证客户端对动态">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://images2018.cnblogs.com/blog/733013/201803/733013-20180312155114398-1140876194.png">
+<meta property="og:image" content="https://images2018.cnblogs.com/blog/733013/201803/733013-20180312172631838-569026518.png">
+<meta property="og:image" content="https://images2018.cnblogs.com/blog/733013/201803/733013-20180312160806274-1583786928.png">
+<meta property="og:image" content="https://images2018.cnblogs.com/blog/733013/201803/733013-20180312164613193-2072314632.png">
+<meta property="og:image" content="https://images2018.cnblogs.com/blog/733013/201803/733013-20180312160353831-1869095456.png">
+<meta property="og:image" content="https://images2018.cnblogs.com/blog/733013/201803/733013-20180312233928846-1451517090.png">
+<meta property="og:image" content="https://images2018.cnblogs.com/blog/733013/201803/733013-20180313000958352-239554158.png">
+<meta property="og:image" content="https://images2018.cnblogs.com/blog/733013/201803/733013-20180312162519187-676816261.png">
+<meta property="article:published_time" content="2020-12-01T08:15:48.000Z">
+<meta property="article:modified_time" content="2020-12-01T08:23:26.323Z">
+<meta property="article:author" content="Hao Zhang">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://images2018.cnblogs.com/blog/733013/201803/733013-20180312155114398-1140876194.png"><title>haproxy实现会话保持:cookie | Hao's blog</title><link ref="canonical" href="http://zhho.cn/2020/12/01/haproxy%E5%AE%9E%E7%8E%B0%E4%BC%9A%E8%AF%9D%E4%BF%9D%E6%8C%81-cookie/"><link rel="dns-prefetch" href="https://cdn.jsdelivr.net"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.12.1/css/all.min.css" type="text/css"><link rel="stylesheet" href="/css/index.css?v=2.1.1"><script>var Stun = window.Stun || {};
+var CONFIG = {
+  root: '/',
+  algolia: undefined,
+  fontIcon: {"prompt":{"success":"fas fa-check-circle","info":"fas fa-arrow-circle-right","warning":"fas fa-exclamation-circle","error":"fas fa-times-circle"},"copyBtn":"fas fa-copy"},
+  sidebar: {"offsetTop":"20px","tocMaxDepth":6},
+  header: {"enable":true,"showOnPost":true,"scrollDownIcon":false},
+  postWidget: {"endText":true},
+  nightMode: {"enable":true},
+  back2top: {"enable":true},
+  codeblock: {"style":"default","highlight":"light","wordWrap":false},
+  reward: false,
+  fancybox: false,
+  zoomImage: {"gapAside":"20px"},
+  galleryWaterfall: undefined,
+  lazyload: false,
+  pjax: undefined,
+  externalLink: {"icon":{"enable":true,"name":"fas fa-external-link-alt"}},
+  shortcuts: undefined,
+  prompt: {"copyButton":"Copy","copySuccess":"Copy Success","copyError":"Copy Error"},
+  sourcePath: {"js":"js","css":"css","images":"images"},
+};
+
+window.CONFIG = CONFIG;</script><meta name="generator" content="Hexo 5.1.1"></head><body><div class="container" id="container"><header class="header" id="header"><div class="header-inner"><nav class="header-nav header-nav--fixed"><div class="header-nav-inner"><div class="header-nav-menubtn"><i class="fas fa-bars"></i></div><div class="header-nav-menu"><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="/"><span class="header-nav-menu-item__icon"><i class="fas fa-home"></i></span><span class="header-nav-menu-item__text">Home</span></a></div><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="/archives/"><span class="header-nav-menu-item__icon"><i class="fas fa-folder-open"></i></span><span class="header-nav-menu-item__text">Archives</span></a></div><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="/categories/"><span class="header-nav-menu-item__icon"><i class="fas fa-layer-group"></i></span><span class="header-nav-menu-item__text">Categories</span></a></div><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="/tags/"><span class="header-nav-menu-item__icon"><i class="fas fa-tags"></i></span><span class="header-nav-menu-item__text">Tags</span></a></div></div><div class="header-nav-mode"><div class="mode"><div class="mode-track"><span class="mode-track-moon"></span><span class="mode-track-sun"></span></div><div class="mode-thumb"></div></div></div></div></nav><div class="header-banner"><div class="header-banner-info"><div class="header-banner-info__title">Hao's blog</div><div class="header-banner-info__subtitle">No pains ,no gains</div></div></div></div></header><main class="main" id="main"><div class="main-inner"><div class="content-wrap" id="content-wrap"><div class="content" id="content"><!-- Just used to judge whether it is an article page--><div id="is-post"></div><div class="post"><header class="post-header"><h1 class="post-title">haproxy实现会话保持:cookie</h1><div class="post-meta"><span class="post-meta-item post-meta-item--createtime"><span class="post-meta-item__icon"><i class="far fa-calendar-plus"></i></span><span class="post-meta-item__info">Created</span><span class="post-meta-item__value">2020-12-01</span></span><span class="post-meta-item post-meta-item--updatetime"><span class="post-meta-item__icon"><i class="far fa-calendar-check"></i></span><span class="post-meta-item__info">Updated</span><span class="post-meta-item__value">2020-12-01</span></span></div></header><div class="post-body">
+        <h1 id="haproxy实现会话保持-1-cookie"   >
+          <a href="#haproxy实现会话保持-1-cookie" class="heading-link"><i class="fas fa-link"></i></a>haproxy实现会话保持(1):cookie</h1>
+      <p><strong>HAProxy系列文章：\</strong><span class="exturl"><a class="exturl__link"   target="_blank" rel="noopener" href="http://www.cnblogs.com/f-ck-need-u/p/7576137.html#haproxy" >http://www.cnblogs.com/f-ck-need-u/p/7576137.html</a><span class="exturl__icon"><i class="fas fa-external-link-alt"></i></span></span>****</p>
+<hr>
+
+        <h1 id="1-反向代理为什么需要设置cookie"   >
+          <a href="#1-反向代理为什么需要设置cookie" class="heading-link"><i class="fas fa-link"></i></a>1.反向代理为什么需要设置cookie</h1>
+      <p>任何一个七层的http负载均衡器，都应该具备一个功能：会话保持。会话保持是保证客户端对动态应用程序正确请求的基本要求。</p>
+<p>还是那个被举烂了却最有说服力的例子：客户端A向服务端B请求将C商品加入它的账户购物车，加入成功后，服务端B会在某个缓存区域中记录下客户端A和它的商品C，这个缓存的内容就是session上下文环境。而识别客户端的方式一般是设置session ID(如PHPSESSID、JSESSIONID)，并将其作为cookie的内容交给客户端。客户端A再次请求的时候(比如将购物车中的商品下订单)只要携带这个cookie，服务端B就可以从中获取到session ID并找到属于客户端A的缓存内容(商品C)，也就可以继续执行下订单部分的代码。</p>
+<p>假如这时使用负载均衡软件对客户端的请求进行负载，就必须要保证能将客户端A的请求再次引导到服务端B，而不能引导到服务端X、服务端Y，因为X、Y上并没有缓存和客户端A对应的session内容，也就无法为客户端A下订单。</p>
+<p>因此，反向代理软件必须具备将客户端和服务端”绑定”的功能，也就是所谓的提供会话保持，让客户端A后续的请求一定转发到服务端B上。</p>
+<p>这里讨论的对象是http的动态应用请求，它要求会话保持。更通用地，只要负载均衡软件负载的不是”无状态”的协议或服务，就应该提供会话保持能力，除非它是四层负载软件。</p>
+<p>haproxy提供了3种实现会话保持的方式：</p>
+<ul>
+<li>(1).源地址hash;</li>
+<li>(2).设置cookie;</li>
+<li>(3).会话粘性表stick-table;</li>
+</ul>
+<p>本文只讨论haproxy在设置cookie上实现会话保持的方式，stick-table会话粘性的方式则在<span class="exturl"><a class="exturl__link"   target="_blank" rel="noopener" href="http://www.cnblogs.com/f-ck-need-u/p/8558514.html" >下一篇文章</a><span class="exturl__icon"><i class="fas fa-external-link-alt"></i></span></span>中单独讨论。而源地址hash是一种负载调度算法，没什么可讨论的，而且除非实在没办法，不建议使用这种调度算法。</p>
+<a id="more"></a>
+
+
+        <h1 id="2-haproxy设置cookie的几种方式"   >
+          <a href="#2-haproxy设置cookie的几种方式" class="heading-link"><i class="fas fa-link"></i></a>2.haproxy设置cookie的几种方式</h1>
+      <p>设置cookie的方式是通过在配置文件中使用cookie指令进行配置的。由于haproxy设置cookie的目的是为了将某客户端引导到之前为其服务过的后端服务器上，简单地说，就是和后端某服务器保持联系，因此cookie指令不能设置在frontend段落。</p>
+<p>首先看一个设置cookie的示例。</p>
+<figure class="highlight plain"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">backend dynamic_servers</span><br><span class="line">    cookie app_cook  insert  nocache</span><br><span class="line">    server app1      192.168.100.22:80 cookie server1</span><br><span class="line">    server app2      192.168.100.23:80 cookie server2</span><br></pre></td></tr></table></div></figure>
+
+<p>这个示例配置中，<code>cookie</code>指令中指定的是insert命令，表示在将响应报文交给客户端之前，先插入一个属性名为”app_cook”的cookie，这个cookie在响应报文的头部将独占一个”Set-Cookie”字段(因为是插入新cookie)，而”app_cook”只是cookie名称，它的值是由server指令中的cookie选项指定的，这里是”server1”或”server2”。</p>
+<p>因此，如果这个请求报文分配给后端app2时，响应给客户端的响应报文中<strong>haproxy设置的</strong>“Set-Cookie”字段的样式为：</p>
+<figure class="highlight plain"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Set-Cookie:app_cook&#x3D;server2; path&#x3D;&#x2F;</span><br></pre></td></tr></table></div></figure>
+
+<p>除了insert命令，cookie指令中还支持rewrite和prefix两种设置cookie的方式，这三种cookie的操作方式只能三选一。此外，还提供一些额外对cookie的功能设置。</p>
+<p>首先看看指令的语法:</p>
+<figure class="highlight plain"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cookie &lt;name&gt; [ rewrite | insert | prefix ] [ indirect ] [ nocache ]</span><br><span class="line">              [ postonly ] [ preserve ] [ httponly ] [ secure ]</span><br><span class="line">              [ domain &lt;domain&gt; ]* [ maxidle &lt;idle&gt; ] [ maxlife &lt;life&gt; ]</span><br></pre></td></tr></table></div></figure>
+
+<p>本文详细分节讨论rewrite、insert、prefix的行为，并在讨论它们的时候会穿插说明indirect、nocache和preserve的行为，如果需要了解其他选项，请自翻官方手册。</p>
+<p>下图是后文实验时使用的环境：</p>
+<p><img src="https://images2018.cnblogs.com/blog/733013/201803/733013-20180312155114398-1140876194.png" alt="img"></p>
+<p>其中在后端提供的index.php内容大致如下，主要部分是<strong>设置了名为<code>PHPSESSID</code>的cookie</strong>。</p>
+<figure class="highlight plain"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">&lt;h1&gt;response from webapp 192.168.100.61&lt;&#x2F;h1&gt;</span><br><span class="line">&lt;?php</span><br><span class="line">        session_start();</span><br><span class="line">        echo &quot;Server IP: &quot;.&quot;&lt;font color&#x3D;red&gt;&quot;.$_SERVER[&#39;SERVER_ADDR&#39;].&quot;&lt;&#x2F;font&gt;&quot;.&quot;&lt;br&gt;&quot;;</span><br><span class="line">        echo &quot;Server Name: &quot;.&quot;&lt;font color&#x3D;red&gt;&quot;.$_SERVER[&#39;SERVER_NAME&#39;].&quot;&lt;&#x2F;font&gt;&quot;.&quot;&lt;br&gt;&quot;;</span><br><span class="line">        echo &quot;SESSIONNAME: &quot;.&quot;&lt;font color&#x3D;red&gt;&quot;.session_name().&quot;&lt;&#x2F;font&gt;&quot;.&quot;&lt;br&gt;&quot;;</span><br><span class="line">        echo &quot;SESSIONID: &quot;.&quot;&lt;font color&#x3D;red&gt;&quot;.session_id().&quot;&lt;&#x2F;font&gt;&quot;.&quot;&lt;br&gt;&quot;;</span><br><span class="line">?&gt;</span><br></pre></td></tr></table></div></figure>
+
+
+
+
+        <h1 id="2-1-cookie-insert"   >
+          <a href="#2-1-cookie-insert" class="heading-link"><i class="fas fa-link"></i></a>2.1 cookie insert</h1>
+      <figure class="highlight plain"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">insert    This keyword indicates that the persistence cookie will have to</span><br><span class="line">          be inserted by haproxy in server responses if the client did not</span><br><span class="line"></span><br><span class="line">          already have a cookie that would have permitted it to access this</span><br><span class="line">          server. When used without the &quot;preserve&quot; option, if the server</span><br><span class="line">          emits a cookie with the same name, it will be remove before</span><br><span class="line">          processing.  For this reason, this mode can be used to upgrade</span><br><span class="line">          existing configurations running in the &quot;rewrite&quot; mode. The cookie</span><br><span class="line">          will only be a session cookie and will not be stored on the</span><br><span class="line">          client&#39;s disk. By default, unless the &quot;indirect&quot; option is added,</span><br><span class="line">          the server will see the cookies emitted by the client. Due to</span><br><span class="line">          caching effects, it is generally wise to add the &quot;nocache&quot; or</span><br><span class="line">          &quot;postonly&quot; keywords (see below). The &quot;insert&quot; keyword is not</span><br><span class="line">          compatible with &quot;rewrite&quot; and &quot;prefix&quot;.</span><br></pre></td></tr></table></div></figure>
+
+<p>其中大致说明了以下几个意思：</p>
+<ol>
+<li>该关键词表示，haproxy将在客户端没有cookie时(比如第一次请求)，在响应报文中插入一个cookie。</li>
+<li>当没有使用关键词”preserve”选项时，如果后端服务器设置了一个和此处名称相同的cookie，则首先删除服务端设置的cookie。</li>
+<li>该cookie只能作为会话保持使用，无法持久化到客户端的磁盘上(因为haproxy设置的cookie没有maxAge属性，无法持久保存，只能保存在浏览器缓存中)。</li>
+<li>默认情况下，除非使用了”indirect”选项，否则服务端可以看到客户端请求时的所有cookie信息。</li>
+<li>由于缓存的影响，建议加上”nocache”或”postonly”选项。</li>
+</ol>
+<p>下面使用例子来解释insert的各种行为。</p>
+<p>在haproxy如下配置后端。</p>
+<figure class="highlight plain"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">backend dynamic_group</span><br><span class="line">    cookie app_cook insert nocache</span><br><span class="line">    server app1 192.168.100.60:80 cookie app_server1</span><br><span class="line">    server app2 192.168.100.61:80 cookie app_server2</span><br></pre></td></tr></table></div></figure>
+
+<p>当使用浏览器第一次访问<code>http://192.168.100.59/index.php</code>时，响应结果和响应首部内容如下图：</p>
+<p><img src="https://images2018.cnblogs.com/blog/733013/201803/733013-20180312172631838-569026518.png" alt="img"></p>
+<p>从图中可以知道，这次浏览器的请求分配给了app2，而且响应首部中有两个”Set-Cookie”字段，其中带有PHPSESSID的cookie是app2服务器自身设置的，另一个是haproxy设置的，其名和其值为”app_cook=app_server2”。</p>
+<p>如果客户端再次访问(不关闭浏览器，cookie缓存还在)，请求头中将携带该cookie，haproxy发现了该cookie中”app_cook=app_server2”部分，知道这个请求要交给app_server2这个后端。如下图：</p>
+<p><img src="https://images2018.cnblogs.com/blog/733013/201803/733013-20180312160806274-1583786928.png" alt="img"></p>
+<p>这样就实现了会话保持，保证被处理过的客户端能被分配到同一个后端应用服务器上。</p>
+<p>注意，<strong>客户端在第一次收到响应后就会把cookie缓存下来</strong>，以后每次<code>http://192.168.100.59/index.php</code>(根据域名进行判断)都会从缓存中取出该cookie放进请求首部。这样haproxy一定会将其分配给app_server2，除非app_server2下线了。但即使如此，客户端还是会携带该cookie，只不过haproxy判断app_server2下线后，就为客户端重新分配app_server1，并设置”app_cook=app_server1”，该cookie会**替换客户端中的”app_cook=app_server2”**。下图是app2下线后分配给app1的结果：</p>
+<p><img src="https://images2018.cnblogs.com/blog/733013/201803/733013-20180312164613193-2072314632.png" alt="img"></p>
+<p>但注意，**即使分配给了app1，PHPSESSID也不会改变(即app1设置的PHPSESSID无效)**，因为haproxy判断出这个重名cookie，会删除app1设置的PHPSESSID。因此上图中的PHPSESSID值和之前分配给app2时的PHPSESSID是一样的。</p>
+<p>这样一来，app1不是就无法处理该客户端的请求了吗？确实如此，但没办法，除非后端设置了session共享。</p>
+<p><strong>如果将配置文件中的cookie名称也设置为PHPSESSID，即后端应用服务器和此处设置的cookie名称相同，那么haproxy将首先将后端的PHPSESSID删除，然后使用自己的值发送给客户端。也就是说，此时将只有一个”Set-Cookie”字段响应给客户端。</strong></p>
+<figure class="highlight plain"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">backend dynamic_group</span><br><span class="line">    cookie PHPSESSID insert nocache</span><br><span class="line">    server app1 192.168.100.60:80 cookie app_server1</span><br><span class="line">    server app2 192.168.100.61:80 cookie app_server2</span><br></pre></td></tr></table></div></figure>
+
+<p><img src="https://images2018.cnblogs.com/blog/733013/201803/733013-20180312160353831-1869095456.png" alt="img"></p>
+<p>因此，在cookie指令中绝对不能设置cookie名称和后端的cookie名称相同，否则后端就相当于”盲人”。例如此处的PHPSESSID，此时后端虽然认识PHPSESSID是自己发送出去的cookie名称，但是无法获取ID为”app_server1”的session上下文。</p>
+<p><strong>如果不配合”indirect”选项</strong>，服务端可以看到客户端请求时的所有cookie信息。如果配合”indirect”选项，则haproxy在将请求转发给后端时，将删除自己设置的cookie，使得后端只能看到它自己的cookie，这样对后端来说，整个过程是完全透明的，它不知道前面有负载均衡软件。</p>
+<p>重新修改haproxy的cookie指令，并修改nginx配置文件中日志格式，在其中加上”$http_cookie”变量，它表示请求报文中的cookie信息。</p>
+<figure class="highlight plain"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"># haproxy</span><br><span class="line">cookie app_cook insert nocache</span><br><span class="line"></span><br><span class="line"># nginx</span><br><span class="line">log_format  main  &#39;$http_cookie $remote_addr - $remote_user [$time_local] &quot;$request&quot; &#39;</span><br><span class="line">                  &#39;$status $body_bytes_sent &quot;$http_referer&quot; &#39;</span><br><span class="line">                  &#39;&quot;$http_user_agent&quot; &quot;$http_x_forwarded_for&quot;&#39;;</span><br></pre></td></tr></table></div></figure>
+
+<p>客户端再次访问时，nginx的日志中将记录以下信息(只贴出了前几个字段)。</p>
+<figure class="highlight plain"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">PHPSESSID&#x3D;47d0ina2m14gg67ovdf1d972d1; app_cook&#x3D;app_server1 192.168.100.59</span><br></pre></td></tr></table></div></figure>
+
+<p>加上”indirect”选项，再测试。</p>
+<figure class="highlight plain"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cookie app_cook insert indirect nocache</span><br></pre></td></tr></table></div></figure>
+
+<p>结果如下：</p>
+<figure class="highlight plain"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">PHPSESSID&#x3D;bge3bh6sksu2ie91lsp8ep9oi2 192.168.100.59</span><br></pre></td></tr></table></div></figure>
+
+<p><strong>如果insert关键字配合”preserve”关键字</strong>，那么当后端设置了cookie时，haproxy将强制保留该cookie，不做任何修改。也就是说，如果将haproxy的cookie名称也设置为PHPSESSID，那么客户端第一次请求时收到的响应报文中将只有一个”Set-Cookie”字段，且这个字段的值是后端服务器设置的，和haproxy无关。</p>
+<p><strong>当客户端和HAProxy之间存在缓存时，建议将insert配合nocache一起使用</strong>，因为nocache确保如果需要插入cookie，则可缓存页面将被标记为不可缓存。这一点很重要，因为如果所有cookie都添加到可缓存的页面上，则所有客户都将从中间的缓存层(如cdn端的缓存层)获取页面，并且将共享同一个Cookie，从而导致某台后端服务器接收的流量远远超过其他后端服务器。</p>
+
+        <h1 id="2-2-cookie-prefix"   >
+          <a href="#2-2-cookie-prefix" class="heading-link"><i class="fas fa-link"></i></a>2.2 cookie prefix</h1>
+      <figure class="highlight plain"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">prefix    This keyword indicates that instead of relying on a dedicated</span><br><span class="line">          cookie for the persistence, an existing one will be completed.</span><br><span class="line">          This may be needed in some specific environments where the client</span><br><span class="line">          does not support more than one single cookie and the application</span><br><span class="line">          already needs it. In this case, whenever the server sets a cookie</span><br><span class="line">          named &lt;name&gt;, it will be prefixed with the server&#39;s identifier</span><br><span class="line">          and a delimiter. The prefix will be removed from all client</span><br><span class="line">          requests so that the server still finds the cookie it emitted.</span><br><span class="line">          Since all requests and responses are subject to being modified,</span><br><span class="line">          this mode doesn&#39;t work with tunnel mode. The &quot;prefix&quot; keyword is</span><br><span class="line">          not compatible with &quot;rewrite&quot; and &quot;insert&quot;. Note: it is highly</span><br><span class="line">          recommended not to use &quot;indirect&quot; with &quot;prefix&quot;, otherwise server</span><br><span class="line">          cookie updates would not be sent to clients.</span><br></pre></td></tr></table></div></figure>
+
+<p>大致意思是：haproxy将在已存在的cookie(例如后端应用服务器设置的)上添加前缀cookie值，这个前缀部分是server指令中的cookie设置的，代表的是<strong>服务端标识符</strong>。在客户端再次访问时，haproxy将会自动移除这部分前缀，使得服务端只能看到它自己发出的cookie。在一些特殊环境下，客户端不支持多个”Set-Cookie”字段，这时可以使用prefix。</p>
+<p>使用prefix的时候，**cookie指令设置的cookie名必须和后端设置的cookie一样(在本文的环境中是PHPSESSID)**，否则prefix模式下的haproxy不会对响应报文做任何改变。</p>
+<figure class="highlight plain"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">backend dynamic_group</span><br><span class="line">    cookie PHPSESSID prefix</span><br><span class="line">    server app1 192.168.100.60:80 cookie app_server1</span><br><span class="line">    server app2 192.168.100.61:80 cookie app_server2</span><br></pre></td></tr></table></div></figure>
+
+<p>如下图：</p>
+<p><img src="https://images2018.cnblogs.com/blog/733013/201803/733013-20180312233928846-1451517090.png" alt="img"></p>
+<p>从后端nginx上的日志上查看haproxy转发过来的请求，可以看到前缀已经被haproxy去掉了。</p>
+<figure class="highlight plain"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">PHPSESSID&#x3D;oses71hjr64dl6lputpkmdpg12 192.168.100.59 - -</span><br></pre></td></tr></table></div></figure>
+
+
+
+
+        <h1 id="2-3-cookie-rewrite"   >
+          <a href="#2-3-cookie-rewrite" class="heading-link"><i class="fas fa-link"></i></a>2.3 cookie rewrite</h1>
+      <figure class="highlight plain"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">rewrite   This keyword indicates that the cookie will be provided by the</span><br><span class="line">          server and that haproxy will have to modify its value to set the</span><br><span class="line">          server&#39;s identifier in it. This mode is handy when the management</span><br><span class="line">          of complex combinations of &quot;Set-cookie&quot; and &quot;Cache-control&quot;</span><br><span class="line">          headers is left to the application. The application can then</span><br><span class="line">          decide whether or not it is appropriate to emit a persistence</span><br><span class="line">          cookie. Since all responses should be monitored, this mode</span><br><span class="line">          doesn&#39;t work in HTTP tunnel mode. Unless the application</span><br><span class="line">          behaviour is very complex and&#x2F;or broken, it is advised not to</span><br><span class="line">          start with this mode for new deployments. This keyword is</span><br><span class="line">          incompatible with &quot;insert&quot; and &quot;prefix&quot;.</span><br></pre></td></tr></table></div></figure>
+
+<p>当后端服务器设置了cookie时，使用rewrite模式时，haproxy将重写该cookie的<strong>值</strong>为后端服务器的标识符。当应用程序需要同时考虑”Set-Cookie”和”Cache-control”字段时，该模式非常方便，因为应用程序可以决定是否应该设置一个为了保持会话的cookie。除非后端应用程序的环境非常复杂，否则不建议使用该模式。</p>
+<p>同样，rewrite模式下的haproxy设置的cookie必须和后端服务器设置的cookie名称一致，否则不会做任何改变。</p>
+<figure class="highlight plain"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">backend dynamic_group</span><br><span class="line">    cookie PHPSESSID rewrite</span><br><span class="line">    server app1 192.168.100.60:80 cookie app_server1</span><br><span class="line">    server app2 192.168.100.61:80 cookie app_server2</span><br></pre></td></tr></table></div></figure>
+
+<p>结果如下图：</p>
+<p><img src="https://images2018.cnblogs.com/blog/733013/201803/733013-20180313000958352-239554158.png" alt="img"></p>
+<p>但是，当客户端持着”PHPSESSID=app_server1”再去请求服务器时，haproxy将其分配给app1，app1此时收到的cookie将是重写后的，但是app1根本就不认识这个cookie，后面的代码可能因此而失去逻辑无法进行正确处理。</p>
+
+        <h1 id="3-haproxy如何使用cookie实现会话保持以及如何忽略会话保持"   >
+          <a href="#3-haproxy如何使用cookie实现会话保持以及如何忽略会话保持" class="heading-link"><i class="fas fa-link"></i></a>3.haproxy如何使用cookie实现会话保持以及如何忽略会话保持</h1>
+      <p>在haproxy中，haproxy会监控、修改、增加cookie，这都是通过内存中的cookie表实现的。</p>
+<p>cookie表中记录了它自己增、改的cookie记录，包括cookie名和对应server的cookie值，通过这个cookie记录，haproxy就能知道请求该交给哪个后端。</p>
+<p>例如，当haproxy插入一个cookie的时候。即在haproxy配置如下后端。</p>
+<figure class="highlight plain"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">backend dynamic_group</span><br><span class="line">    cookie app_cook insert nocache</span><br><span class="line">    server app1 192.168.100.60:80 cookie app_server1</span><br><span class="line">    server app2 192.168.100.61:80 cookie app_server2</span><br></pre></td></tr></table></div></figure>
+
+<p>那么，从客户端第一次请求到第二次请求被处理的整个过程，大致如下：</p>
+<p><img src="https://images2018.cnblogs.com/blog/733013/201803/733013-20180312162519187-676816261.png" alt="img"></p>
+<p>当haproxy成功修改了响应报文中的cookie时，将在cookie表中插入一条记录，这条记录是维持会话的依据。</p>
+<p>其实，通过cookie表保持和后端的会话只是默认情况，haproxy允许”即使使用了cookie也不进行会话绑定”的功能。这可以通过<code>ignore-persist</code>指令来实现。当满足该指令的要求时，表示不将该cookie插入到cookie表中，因此无法实现会话保持，即使haproxy设置了cookie也没用。</p>
+<p>例如，在backend中指定如下配置：</p>
+<figure class="highlight plain"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">backend dynamic_group</span><br><span class="line">    acl  url_dynamic   path_end  -i .php</span><br><span class="line">    ignore-persist if  url_dynamic</span><br><span class="line">    cookie app_cook insert nocache</span><br><span class="line">    server app1 192.168.100.60:80 cookie app_server1</span><br><span class="line">    server app2 192.168.100.61:80 cookie app_server2</span><br></pre></td></tr></table></div></figure>
+
+<p>这表示当请求uri以”.php”结尾时，将忽略会话保持功能。这表示，对于php结尾的请求，app_cook这个cookie从头到尾都是摆设。</p>
+<p>当然，上面的设置是不合理的，更合理的应该是这样的。</p>
+<figure class="highlight plain"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">acl url_static  path_beg         &#x2F;static &#x2F;images &#x2F;img &#x2F;css</span><br><span class="line">acl url_static  path_end         .gif .png .jpg .css .js</span><br><span class="line">ignore-persist  if url_static</span><br></pre></td></tr></table></div></figure>
+
+<p>与<code>ignore-persist</code>相对的是<code>force-persist</code>，但不建议使用该选项，因为它和<code>option redispatch</code>冲突。</p>
+<p><strong>原文链接：<span class="exturl"><a class="exturl__link"   target="_blank" rel="noopener" href="https://www.cnblogs.com/f-ck-need-u/p/8553190.html" >https://www.cnblogs.com/f-ck-need-u/p/8553190.html</a><span class="exturl__icon"><i class="fas fa-external-link-alt"></i></span></span></strong></p>
+</div><footer class="post-footer"><div class="post-ending ending"><div class="ending__text">------ END ------</div></div><div class="post-copyright copyright"><div class="copyright-author"><span class="copyright-author__name">Author: </span><span class="copyright-author__value"><a href="http://zhho.cn">Hao Zhang</a></span></div><div class="copyright-link"><span class="copyright-link__name">Link: </span><span class="copyright-link__value"><a href="http://zhho.cn/2020/12/01/haproxy%E5%AE%9E%E7%8E%B0%E4%BC%9A%E8%AF%9D%E4%BF%9D%E6%8C%81-cookie/">http://zhho.cn/2020/12/01/haproxy%E5%AE%9E%E7%8E%B0%E4%BC%9A%E8%AF%9D%E4%BF%9D%E6%8C%81-cookie/</a></span></div><div class="copyright-notice"><span class="copyright-notice__name">Copyright: </span><span class="copyright-notice__value">All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en" rel="external nofollow" target="_blank">BY-NC-SA</a> unless stating additionally</span></div></div><nav class="post-paginator paginator"><div class="paginator-prev"><a class="paginator-prev__link" href="/2021/01/25/centos6%E7%9A%84yum%E6%BA%90%E5%A4%B1%E6%95%88%E8%A7%A3%E5%86%B3/"><span class="paginator-prev__icon"><i class="fas fa-angle-left"></i></span><span class="paginator-prev__text">centos6的yum源失效解决</span></a></div><div class="paginator-next"><a class="paginator-next__link" href="/2020/11/16/kubernetes%E4%BA%8C%E8%BF%9B%E5%88%B6%E9%83%A8%E7%BD%B2/"><span class="paginator-prev__text">kubernetes 1.18.10 二进制部署</span><span class="paginator-next__icon"><i class="fas fa-angle-right"></i></span></a></div></nav></footer></div></div></div><div class="sidebar-wrap" id="sidebar-wrap"><aside class="sidebar" id="sidebar"><div class="sidebar-nav"><span class="sidebar-nav-toc current">Catalog</span><span class="sidebar-nav-ov">Overview</span></div><section class="sidebar-toc"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#haproxy%E5%AE%9E%E7%8E%B0%E4%BC%9A%E8%AF%9D%E4%BF%9D%E6%8C%81-1-cookie"><span class="toc-number">1.</span> <span class="toc-text">
+          haproxy实现会话保持(1):cookie</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#1-%E5%8F%8D%E5%90%91%E4%BB%A3%E7%90%86%E4%B8%BA%E4%BB%80%E4%B9%88%E9%9C%80%E8%A6%81%E8%AE%BE%E7%BD%AEcookie"><span class="toc-number">2.</span> <span class="toc-text">
+          1.反向代理为什么需要设置cookie</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#2-haproxy%E8%AE%BE%E7%BD%AEcookie%E7%9A%84%E5%87%A0%E7%A7%8D%E6%96%B9%E5%BC%8F"><span class="toc-number">3.</span> <span class="toc-text">
+          2.haproxy设置cookie的几种方式</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#2-1-cookie-insert"><span class="toc-number">4.</span> <span class="toc-text">
+          2.1 cookie insert</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#2-2-cookie-prefix"><span class="toc-number">5.</span> <span class="toc-text">
+          2.2 cookie prefix</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#2-3-cookie-rewrite"><span class="toc-number">6.</span> <span class="toc-text">
+          2.3 cookie rewrite</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#3-haproxy%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8cookie%E5%AE%9E%E7%8E%B0%E4%BC%9A%E8%AF%9D%E4%BF%9D%E6%8C%81%E4%BB%A5%E5%8F%8A%E5%A6%82%E4%BD%95%E5%BF%BD%E7%95%A5%E4%BC%9A%E8%AF%9D%E4%BF%9D%E6%8C%81"><span class="toc-number">7.</span> <span class="toc-text">
+          3.haproxy如何使用cookie实现会话保持以及如何忽略会话保持</span></a></li></ol></section><!-- ov = overview--><section class="sidebar-ov hide"><div class="sidebar-ov-author"><div class="sidebar-ov-author__avatar"><img class="sidebar-ov-author__avatar_img" src="/images/icons/stun-logo.svg" alt="avatar"></div><p class="sidebar-ov-author__text">Meteor across</p></div><div class="sidebar-ov-state"><a class="sidebar-ov-state-item sidebar-ov-state-item--posts" href="/archives/"><div class="sidebar-ov-state-item__count">24</div><div class="sidebar-ov-state-item__name">Archives</div></a><a class="sidebar-ov-state-item sidebar-ov-state-item--categories" href="/categories/"><div class="sidebar-ov-state-item__count">0</div><div class="sidebar-ov-state-item__name">Categories</div></a><a class="sidebar-ov-state-item sidebar-ov-state-item--tags" href="/tags/"><div class="sidebar-ov-state-item__count">0</div><div class="sidebar-ov-state-item__name">Tags</div></a></div><div class="sidebar-ov-cc"><a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en" target="_blank" rel="noopener" data-popover="Creative Commons" data-popover-pos="up"><img src="/images/cc-by-nc-sa.svg"></a></div></section><div class="sidebar-reading"><div class="sidebar-reading-info"><span class="sidebar-reading-info__text">You have read </span><span class="sidebar-reading-info__num">0</span></div><div class="sidebar-reading-line"></div></div></aside></div><div class="clearfix"></div></div></main><footer class="footer" id="footer"><div class="footer-inner"><div><span>Copyright © 2021</span><span class="footer__icon"><i class="fas fa-heart"></i></span><span>Hao Zhang</span></div><div><span>Powered by <a href="http://hexo.io/" title="Hexo" target="_blank" rel="noopener">Hexo</a></span><span> v5.1.1</span><span class="footer__devider">|</span><span>Theme - <a href="https://github.com/liuyib/hexo-theme-stun/" title="Stun" target="_blank" rel="noopener">Stun</a></span><span> v2.1.1</span></div></div></footer><div class="loading-bar" id="loading-bar"><div class="loading-bar__progress"></div></div><div class="back2top" id="back2top"><span class="back2top__icon"><i class="fas fa-rocket"></i></span></div></div><script src="https://cdn.jsdelivr.net/npm/jquery@v3.4.1/dist/jquery.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-animate@1.5.2/velocity.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-animate@1.5.2/velocity.ui.min.js"></script><script src="/js/utils.js?v=2.1.1"></script><script src="/js/stun-boot.js?v=2.1.1"></script><script src="/js/scroll.js?v=2.1.1"></script><script src="/js/header.js?v=2.1.1"></script><script src="/js/sidebar.js?v=2.1.1"></script></body></html>
