@@ -1,0 +1,170 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="format-detection" content="telephone=no"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><link rel="icon" href="/images/icons/favicon-16x16.png?v=2.1.1" type="image/png" sizes="16x16"><link rel="icon" href="/images/icons/favicon-32x32.png?v=2.1.1" type="image/png" sizes="32x32"><meta name="description" content="一、LVS 性能调优的方法最佳实践                           1、最小化安装编译系统内核                           2、优化持久服务超时时间:       ​    1）显示超时时间​    #ipvsadm -Ln –timeout​    #Timeout (tcp tcpfin udp): 900 120 300​">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LVS性能优化及问题总结">
+<meta property="og:url" content="http://zhho.cn/2021/03/12/LVS%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96%E5%8F%8A%E9%97%AE%E9%A2%98%E6%80%BB%E7%BB%93/index.html">
+<meta property="og:site_name" content="Hao&#39;s blog">
+<meta property="og:description" content="一、LVS 性能调优的方法最佳实践                           1、最小化安装编译系统内核                           2、优化持久服务超时时间:       ​    1）显示超时时间​    #ipvsadm -Ln –timeout​    #Timeout (tcp tcpfin udp): 900 120 300​">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2021-03-12T01:53:07.000Z">
+<meta property="article:modified_time" content="2021-03-12T02:18:14.818Z">
+<meta property="article:author" content="Hao Zhang">
+<meta property="article:tag" content="LVS">
+<meta name="twitter:card" content="summary"><title>LVS性能优化及问题总结 | Hao's blog</title><link ref="canonical" href="http://zhho.cn/2021/03/12/LVS%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96%E5%8F%8A%E9%97%AE%E9%A2%98%E6%80%BB%E7%BB%93/"><link rel="dns-prefetch" href="https://cdn.jsdelivr.net"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.12.1/css/all.min.css" type="text/css"><link rel="stylesheet" href="/css/index.css?v=2.1.1"><script>var Stun = window.Stun || {};
+var CONFIG = {
+  root: '/',
+  algolia: undefined,
+  fontIcon: {"prompt":{"success":"fas fa-check-circle","info":"fas fa-arrow-circle-right","warning":"fas fa-exclamation-circle","error":"fas fa-times-circle"},"copyBtn":"fas fa-copy"},
+  sidebar: {"offsetTop":"20px","tocMaxDepth":6},
+  header: {"enable":true,"showOnPost":true,"scrollDownIcon":false},
+  postWidget: {"endText":true},
+  nightMode: {"enable":true},
+  back2top: {"enable":true},
+  codeblock: {"style":"default","highlight":"light","wordWrap":false},
+  reward: false,
+  fancybox: false,
+  zoomImage: {"gapAside":"20px"},
+  galleryWaterfall: undefined,
+  lazyload: false,
+  pjax: undefined,
+  externalLink: {"icon":{"enable":true,"name":"fas fa-external-link-alt"}},
+  shortcuts: undefined,
+  prompt: {"copyButton":"Copy","copySuccess":"Copy Success","copyError":"Copy Error"},
+  sourcePath: {"js":"js","css":"css","images":"images"},
+};
+
+window.CONFIG = CONFIG;</script><meta name="generator" content="Hexo 5.1.1"></head><body><div class="container" id="container"><header class="header" id="header"><div class="header-inner"><nav class="header-nav header-nav--fixed"><div class="header-nav-inner"><div class="header-nav-menubtn"><i class="fas fa-bars"></i></div><div class="header-nav-menu"><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="/"><span class="header-nav-menu-item__icon"><i class="fas fa-home"></i></span><span class="header-nav-menu-item__text">Home</span></a></div><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="/archives/"><span class="header-nav-menu-item__icon"><i class="fas fa-folder-open"></i></span><span class="header-nav-menu-item__text">Archives</span></a></div><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="/categories/"><span class="header-nav-menu-item__icon"><i class="fas fa-layer-group"></i></span><span class="header-nav-menu-item__text">Categories</span></a></div><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="/tags/"><span class="header-nav-menu-item__icon"><i class="fas fa-tags"></i></span><span class="header-nav-menu-item__text">Tags</span></a></div></div><div class="header-nav-mode"><div class="mode"><div class="mode-track"><span class="mode-track-moon"></span><span class="mode-track-sun"></span></div><div class="mode-thumb"></div></div></div></div></nav><div class="header-banner"><div class="header-banner-info"><div class="header-banner-info__title">Hao's blog</div><div class="header-banner-info__subtitle">No pains ,no gains</div></div></div></div></header><main class="main" id="main"><div class="main-inner"><div class="content-wrap" id="content-wrap"><div class="content" id="content"><!-- Just used to judge whether it is an article page--><div id="is-post"></div><div class="post"><header class="post-header"><h1 class="post-title">LVS性能优化及问题总结</h1><div class="post-meta"><span class="post-meta-item post-meta-item--createtime"><span class="post-meta-item__icon"><i class="far fa-calendar-plus"></i></span><span class="post-meta-item__info">Created</span><span class="post-meta-item__value">2021-03-12</span></span><span class="post-meta-item post-meta-item--updatetime"><span class="post-meta-item__icon"><i class="far fa-calendar-check"></i></span><span class="post-meta-item__info">Updated</span><span class="post-meta-item__value">2021-03-12</span></span></div></header><div class="post-body">
+        <h5 id="一、LVS-性能调优的方法最佳实践"   >
+          <a href="#一、LVS-性能调优的方法最佳实践" class="heading-link"><i class="fas fa-link"></i></a>一、LVS 性能调优的方法最佳实践</h5>
+      
+        <h6 id="1、最小化安装编译系统内核"   >
+          <a href="#1、最小化安装编译系统内核" class="heading-link"><i class="fas fa-link"></i></a>1、最小化安装编译系统内核</h6>
+      
+        <h6 id="2、优化持久服务超时时间"   >
+          <a href="#2、优化持久服务超时时间" class="heading-link"><i class="fas fa-link"></i></a>2、优化持久服务超时时间:</h6>
+      <p>​    1）显示超时时间<br>​    #ipvsadm -Ln –timeout<br>​    #Timeout (tcp tcpfin udp): 900 120 300<br>​    2）配置为与自身应用贴近的超时时间<br>​    #ipvsadm –set tcp tcpfin udp<br>​    ipvsadm –set  900 60 300</p>
+
+        <h6 id="3、增大ipvs模块hash-table的大小"   >
+          <a href="#3、增大ipvs模块hash-table的大小" class="heading-link"><i class="fas fa-link"></i></a>3、增大ipvs模块hash table的大小</h6>
+      <p>​    ipvs模块hash table默认值为2^12=4096，改为2^20=1048576。可以用ipvsadm -l命令查询当前hash table的大小。<br>​        IP Virtual Server version 1.2.1 (size=4096)<br>​    修改方法：<br>​    在/etc/modprobe.d/目录下添加文件ip_vs.conf，内容为：<br>​        options ip_vs conn_tab_bits=20<br>​    重新加载ipvs模块。<br>​        IP Virtual Server version 1.2.1 (size=1048576) </p>
+
+        <h6 id="4、文件句柄及进程数"   >
+          <a href="#4、文件句柄及进程数" class="heading-link"><i class="fas fa-link"></i></a>4、文件句柄及进程数</h6>
+      <figure class="highlight plain"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">vim &#x2F;etc&#x2F;security&#x2F;limits.conf</span><br><span class="line">   *  soft nofile 1024000 </span><br><span class="line">   *  hard nofile 1024000 </span><br><span class="line">   *  soft nproc 1024000 </span><br><span class="line">   *  hard nproc 1024000 </span><br></pre></td></tr></table></div></figure>
+
+<a id="more"></a>
+
+
+        <h6 id="5、修改内核参数vi-etc-sysctl-conf"   >
+          <a href="#5、修改内核参数vi-etc-sysctl-conf" class="heading-link"><i class="fas fa-link"></i></a>5、修改内核参数vi /etc/sysctl.conf</h6>
+      <pre><code>net.core.rmem_max=16777216
+net.core.wmem_max=16777216
+#内核放弃建立连接之前发送SYN 包的数量
+net.ipv4.tcp_syn_retries = 1
+#内核放弃建立连接之前发送SYNACK 包的数量
+net.ipv4.tcp_synack_retries = 1
+#当keepalive 起用的时候，TCP 发送keepalive 消息的频度。缺省是2 小时
+net.ipv4.tcp_keepalive_time = 300
+#TCP发送keepalive探测消息的间隔时间（秒），用于确认TCP连接是否有效。
+net.ipv4.tcp_keepalive_probes = 3
+探测消息未获得响应时，重发该消息的间隔时间（秒）。
+net.ipv4.tcp_keepalive_intvl =15
+#在丢弃激活(已建立通讯状况)的TCP连接之前﹐需要进行多少次重试。
+net.ipv4.tcp_retries2 = 5
+#开启重用。允许将TIME-WAIT sockets 重新用于新的TCP 连接
+net.ipv4.tcp_fin_timeout = 10
+#表示是否允许重新应用处于TIME-WAIT状态的socket用于新的TCP连接(这个对快速重启动某些服务,而启动后提示端口已经被使用的情形非常有帮助)
+net.ipv4.tcp_tw_reuse = 1
+net.ipv4.tcp_mem = 94500000 915000000 927000000 
+#timewait的数量，默认180000
+net.ipv4.tcp_max_tw_buckets = 6000
+net.ipv4.tcp_wmem = 8192 131072 16777216
+net.ipv4.tcp_rmem = 32768 131072 16777216
+#启用timewait 快速回收
+net.ipv4.tcp_tw_recycle = 1
+#限制仅仅是为了防止简单的DoS 攻击
+net.ipv4.tcp_max_orphans = 327680
+#开启SYN洪水攻击保护
+net.ipv4.tcp_syncookies = 1
+#未收到客户端确认信息的连接请求的最大值
+net.ipv4.tcp_max_syn_backlog = 16384
+#允许系统打开的端口范围
+net.ipv4.ip_local_port_range = 1024 65000
+#############
+net.ipv4.ip_conntrack_max = 65536
+net.ipv4.netfilter.ip_conntrack_max=65536
+net.ipv4.netfilter.ip_conntrack_tcp_timeout_established=180
+net.core.somaxconn = 65535
+#每个网络接口接收数据包的速率比内核处理这些包的速率快时，允许送到队列的数据包的最大数目
+#禁用ARP，增大backlog并发数 
+net.ipv4.conf.all.arp_ignore = 1
+net.ipv4.conf.all.arp_announce = 2
+net.core.netdev_max_backlog = 500000
+fs.file-max = 1048576 
+net.ipv4.ip_forward = 1 
+net.core.wmem_default = 8388608 
+net.core.rmem_default = 8388608 
+net.core.optmem_max = 81920 
+net.ipv4.route.gc_timeout = 20 
+net.ipv4.tcp_abort_on_overflow = 1 
+net.ipv4.tcp_max_tw_buckets = 6000 
+net.ipv4.tcp_sack = 1 
+net.ipv4.tcp_window_scaling = 1 
+net.ipv4.tcp_no_metrics_save = 1 
+net.ipv4.tcp_mem = 94500000 915000000 927000000 
+net.ipv4.tcp_timestamps = 0 
+net.ipv4.conf.default.rp_filter = 1 
+net.ipv4.conf.default.accept_source_route = 0 
+#modprobe ip_conntrack  
+net.netfilter.nf_conntrack_tcp_timeout_established = 180 
+net.netfilter.nf_conntrack_max = 1048576 
+net.nf_conntrack_max = 1048576 
+kernel.sysrq = 0 
+kernel.core_uses_pid = 1 
+kernel.msgmnb = 65536 
+kernel.msgmax = 65536 
+kernel.shmmax = 68719476736 
+kernel.shmall = 4294967296 </code></pre>
+<p>​    <strong>注意：</strong><br>​    <strong>net.ipv4.tcp_tw_recycle = 1有坑，在nat环境下慎用。</strong></p>
+<p>​    <strong>越是大并发，越要注意net.ipv4.tcp_max_tw_buckets的值不能太大</strong>    </p>
+
+        <h6 id="6、关闭网卡LRO和GRO"   >
+          <a href="#6、关闭网卡LRO和GRO" class="heading-link"><i class="fas fa-link"></i></a>6、关闭网卡LRO和GRO</h6>
+      <figure class="highlight plain"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ethtool -K eth0 gro off </span><br><span class="line">ethtool -K eth0 lro off  </span><br></pre></td></tr></table></div></figure>
+
+
+        <h6 id="7、调整内核的时钟机制"   >
+          <a href="#7、调整内核的时钟机制" class="heading-link"><i class="fas fa-link"></i></a>7、调整内核的时钟机制</h6>
+      <figure class="highlight plain"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kernel nohz&#x3D;off    </span><br></pre></td></tr></table></div></figure>
+
+
+        <h6 id="二、遇到的问题"   >
+          <a href="#二、遇到的问题" class="heading-link"><i class="fas fa-link"></i></a>二、遇到的问题</h6>
+      <p>1、机房无法实时刷新MAC,LVS+Heartbeat方案无法正常随机切换IP?<br>假如两台VS之间使用的互备关系，那么当一台VS接管LVS服务时，可能会网络不通，这时因为路由器的MAC缓存表里无法及时刷新MAC.关于vip这个<br>地址的MAC地址还是替换的VS的MAC，有两种解决方法，一种是修改新VS的MAC地址，另一种是使用send_arp /arpiing命令.<br>以arping命令为例.<br>/sbin/arping -I eth0 -c 3 -s ${vip} ${gateway_ip} &gt; /dev/null 2&gt;&amp;1<br>这个命令不一定非要在VS上执行，只要在同一VLAN即可：/sbin/arping -f -q -c 5 -w 5 -I eth0 -s $WEB_VIP -U $GW</p>
+<p>2、某台机器down掉以后,IPVS列表中权值已经置0了,为什么还轮询到这台机器上?<br>##配置 ldirectord.conf<br>设置为：quiescent=no或 echo 1 &gt;/proc/sys/net/ipv4/vs/expire_nodest_conn</p>
+<p>3、为什么做压力测试的时候,LVS不能负载均衡多部分连接只到某一台机器上?<br>这和LVS脚本里指定-p参数有关，如果指定了一个client在一定的时间内，将会被调度到同一台RS上。所以你在从来源来做压力测试的时候大部分连接会调度到同一台机器上，这样就出现了负载不均衡的状况。</p>
+<p>4、用四个参数来关闭arp查询响应请求：<br>echo 1 &gt; /proc/sys/net/ipv4/conf/lo/arp_ignore<br>echo 2 &gt; /proc/sys/net/ipv4/conf/lo/arp_announce<br>echo 1 &gt; /proc/sys/net/ipv4/conf/all/arp_ignore<br>echo 2 &gt; /proc/sys/net/ipv4/conf/all/arp_announce</p>
+<p>5、InActConn并不代表错误连接，它是指不活跃连接(Inactive Connections)，<br>我们将处于TCP ESTABLISH状态以外的连接都称为不活跃连接，例如处于SYN_RECV状态的连接，处于TIME_WAIT状态的连接等。</p>
+<p>6、在LVS方案中，虚拟ip地址与普通网络接口不同，这点需要特别注意。<br>虚拟ip地址的广播地址是它本身，子网掩码是255.255.255.255。 为什么要这样呢？因为有若干机器要使用同一个ip地址，用本身做广播地址和把子网掩码设成4个255就不会造成ip地址冲突了,否则lvs将不能正常转发访问请求。</p>
+
+        <h6 id="三、其他需要注意的细节"   >
+          <a href="#三、其他需要注意的细节" class="heading-link"><i class="fas fa-link"></i></a>三、其他需要注意的细节</h6>
+      <ol>
+<li>LVS调度的最小单位是“连接”。</li>
+<li>当apache的KeepAlive被设置成Off时，“连接”才能被较均衡的调度。</li>
+<li>在不指定-p参数时，LVS才真正以“连接”为单位按“权值”调度流量。</li>
+<li>在指定了-p参数时，则一个client在一定时间内，将会被调度到同一台RS。</li>
+<li>可以通过”ipvsadm –set tcp tcpfin udp”来调整TCP和UDP的超时，让连接淘汰得快一些。</li>
+<li>在NAT模式时，RS的PORT参数才有意义。</li>
+<li>DR和TUN模式时，InActConn 是没有意义的</li>
+</ol>
+</div><footer class="post-footer"><div class="post-ending ending"><div class="ending__text">------ END ------</div></div><div class="post-copyright copyright"><div class="copyright-author"><span class="copyright-author__name">Author: </span><span class="copyright-author__value"><a href="http://zhho.cn">Hao Zhang</a></span></div><div class="copyright-link"><span class="copyright-link__name">Link: </span><span class="copyright-link__value"><a href="http://zhho.cn/2021/03/12/LVS%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96%E5%8F%8A%E9%97%AE%E9%A2%98%E6%80%BB%E7%BB%93/">http://zhho.cn/2021/03/12/LVS%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96%E5%8F%8A%E9%97%AE%E9%A2%98%E6%80%BB%E7%BB%93/</a></span></div><div class="copyright-notice"><span class="copyright-notice__name">Copyright: </span><span class="copyright-notice__value">All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en" rel="external nofollow" target="_blank">BY-NC-SA</a> unless stating additionally</span></div></div><div class="post-tags"><span class="post-tags-item"><span class="post-tags-item__icon"><i class="fas fa-tag"></i></span><a class="post-tags-item__link" href="http://zhho.cn/tags/LVS/">LVS</a></span></div><nav class="post-paginator paginator"><div class="paginator-next"><a class="paginator-next__link" href="/2021/03/11/win10%E8%BF%9E%E6%8E%A5github/"><span class="paginator-prev__text">win10连接github</span><span class="paginator-next__icon"><i class="fas fa-angle-right"></i></span></a></div></nav></footer></div></div></div><div class="sidebar-wrap" id="sidebar-wrap"><aside class="sidebar" id="sidebar"><div class="sidebar-nav"><span class="sidebar-nav-toc current">Catalog</span><span class="sidebar-nav-ov">Overview</span></div><section class="sidebar-toc"><ol class="toc"><li class="toc-item toc-level-5"><a class="toc-link" href="#%E4%B8%80%E3%80%81LVS-%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98%E7%9A%84%E6%96%B9%E6%B3%95%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5"><span class="toc-number">1.</span> <span class="toc-text">
+          一、LVS 性能调优的方法最佳实践</span></a><ol class="toc-child"><li class="toc-item toc-level-6"><a class="toc-link" href="#1%E3%80%81%E6%9C%80%E5%B0%8F%E5%8C%96%E5%AE%89%E8%A3%85%E7%BC%96%E8%AF%91%E7%B3%BB%E7%BB%9F%E5%86%85%E6%A0%B8"><span class="toc-number">1.1.</span> <span class="toc-text">
+          1、最小化安装编译系统内核</span></a></li><li class="toc-item toc-level-6"><a class="toc-link" href="#2%E3%80%81%E4%BC%98%E5%8C%96%E6%8C%81%E4%B9%85%E6%9C%8D%E5%8A%A1%E8%B6%85%E6%97%B6%E6%97%B6%E9%97%B4"><span class="toc-number">1.2.</span> <span class="toc-text">
+          2、优化持久服务超时时间:</span></a></li><li class="toc-item toc-level-6"><a class="toc-link" href="#3%E3%80%81%E5%A2%9E%E5%A4%A7ipvs%E6%A8%A1%E5%9D%97hash-table%E7%9A%84%E5%A4%A7%E5%B0%8F"><span class="toc-number">1.3.</span> <span class="toc-text">
+          3、增大ipvs模块hash table的大小</span></a></li><li class="toc-item toc-level-6"><a class="toc-link" href="#4%E3%80%81%E6%96%87%E4%BB%B6%E5%8F%A5%E6%9F%84%E5%8F%8A%E8%BF%9B%E7%A8%8B%E6%95%B0"><span class="toc-number">1.4.</span> <span class="toc-text">
+          4、文件句柄及进程数</span></a></li><li class="toc-item toc-level-6"><a class="toc-link" href="#5%E3%80%81%E4%BF%AE%E6%94%B9%E5%86%85%E6%A0%B8%E5%8F%82%E6%95%B0vi-etc-sysctl-conf"><span class="toc-number">1.5.</span> <span class="toc-text">
+          5、修改内核参数vi &#x2F;etc&#x2F;sysctl.conf</span></a></li><li class="toc-item toc-level-6"><a class="toc-link" href="#6%E3%80%81%E5%85%B3%E9%97%AD%E7%BD%91%E5%8D%A1LRO%E5%92%8CGRO"><span class="toc-number">1.6.</span> <span class="toc-text">
+          6、关闭网卡LRO和GRO</span></a></li><li class="toc-item toc-level-6"><a class="toc-link" href="#7%E3%80%81%E8%B0%83%E6%95%B4%E5%86%85%E6%A0%B8%E7%9A%84%E6%97%B6%E9%92%9F%E6%9C%BA%E5%88%B6"><span class="toc-number">1.7.</span> <span class="toc-text">
+          7、调整内核的时钟机制</span></a></li><li class="toc-item toc-level-6"><a class="toc-link" href="#%E4%BA%8C%E3%80%81%E9%81%87%E5%88%B0%E7%9A%84%E9%97%AE%E9%A2%98"><span class="toc-number">1.8.</span> <span class="toc-text">
+          二、遇到的问题</span></a></li><li class="toc-item toc-level-6"><a class="toc-link" href="#%E4%B8%89%E3%80%81%E5%85%B6%E4%BB%96%E9%9C%80%E8%A6%81%E6%B3%A8%E6%84%8F%E7%9A%84%E7%BB%86%E8%8A%82"><span class="toc-number">1.9.</span> <span class="toc-text">
+          三、其他需要注意的细节</span></a></li></ol></li></ol></section><!-- ov = overview--><section class="sidebar-ov hide"><div class="sidebar-ov-author"><div class="sidebar-ov-author__avatar"><img class="sidebar-ov-author__avatar_img" src="/images/icons/stun-logo.svg" alt="avatar"></div><p class="sidebar-ov-author__text">Meteor across</p></div><div class="sidebar-ov-state"><a class="sidebar-ov-state-item sidebar-ov-state-item--posts" href="/archives/"><div class="sidebar-ov-state-item__count">26</div><div class="sidebar-ov-state-item__name">Archives</div></a><a class="sidebar-ov-state-item sidebar-ov-state-item--categories" href="/categories/"><div class="sidebar-ov-state-item__count">0</div><div class="sidebar-ov-state-item__name">Categories</div></a><a class="sidebar-ov-state-item sidebar-ov-state-item--tags" href="/tags/"><div class="sidebar-ov-state-item__count">1</div><div class="sidebar-ov-state-item__name">Tags</div></a></div><div class="sidebar-ov-cc"><a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en" target="_blank" rel="noopener" data-popover="Creative Commons" data-popover-pos="up"><img src="/images/cc-by-nc-sa.svg"></a></div></section><div class="sidebar-reading"><div class="sidebar-reading-info"><span class="sidebar-reading-info__text">You have read </span><span class="sidebar-reading-info__num">0</span></div><div class="sidebar-reading-line"></div></div></aside></div><div class="clearfix"></div></div></main><footer class="footer" id="footer"><div class="footer-inner"><div><span>Copyright © 2021</span><span class="footer__icon"><i class="fas fa-heart"></i></span><span>Hao Zhang</span></div><div><span>Powered by <a href="http://hexo.io/" title="Hexo" target="_blank" rel="noopener">Hexo</a></span><span> v5.1.1</span><span class="footer__devider">|</span><span>Theme - <a href="https://github.com/liuyib/hexo-theme-stun/" title="Stun" target="_blank" rel="noopener">Stun</a></span><span> v2.1.1</span></div></div></footer><div class="loading-bar" id="loading-bar"><div class="loading-bar__progress"></div></div><div class="back2top" id="back2top"><span class="back2top__icon"><i class="fas fa-rocket"></i></span></div></div><script src="https://cdn.jsdelivr.net/npm/jquery@v3.4.1/dist/jquery.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-animate@1.5.2/velocity.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-animate@1.5.2/velocity.ui.min.js"></script><script src="/js/utils.js?v=2.1.1"></script><script src="/js/stun-boot.js?v=2.1.1"></script><script src="/js/scroll.js?v=2.1.1"></script><script src="/js/header.js?v=2.1.1"></script><script src="/js/sidebar.js?v=2.1.1"></script></body></html>
