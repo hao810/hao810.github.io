@@ -1,0 +1,357 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="format-detection" content="telephone=no"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><link rel="icon" href="/images/icons/favicon-16x16.png?v=2.1.1" type="image/png" sizes="16x16"><link rel="icon" href="/images/icons/favicon-32x32.png?v=2.1.1" type="image/png" sizes="32x32"><meta name="description" content="Bind-DLZ + Django   + Mysql  DNS管理平台  系统环境:CentOS 7.6 X64  软件版本:    bind-9.11.6.tar.gz     mysql-5.6.16.tar.gz   Python 3.6    Django 1.11.x 一．源码安装配置Bind:   yum -y install make gcc-c++ cmake bison-dev">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Hao&#39;s blog">
+<meta property="og:url" content="http://zhho.cn/2021/03/15/Bind-DLZ%20+%20Django%20+%20Mysql%20DNS%E7%AE%A1%E7%90%86%E5%B9%B3%E5%8F%B0/index.html">
+<meta property="og:site_name" content="Hao&#39;s blog">
+<meta property="og:description" content="Bind-DLZ + Django   + Mysql  DNS管理平台  系统环境:CentOS 7.6 X64  软件版本:    bind-9.11.6.tar.gz     mysql-5.6.16.tar.gz   Python 3.6    Django 1.11.x 一．源码安装配置Bind:   yum -y install make gcc-c++ cmake bison-dev">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2021-03-15T05:35:45.157Z">
+<meta property="article:modified_time" content="2021-03-15T05:37:48.337Z">
+<meta property="article:author" content="Hao Zhang">
+<meta name="twitter:card" content="summary"><title>[ Untitled ] | Hao's blog</title><link ref="canonical" href="http://zhho.cn/2021/03/15/Bind-DLZ%20+%20Django%20+%20Mysql%20DNS%E7%AE%A1%E7%90%86%E5%B9%B3%E5%8F%B0/"><link rel="dns-prefetch" href="https://cdn.jsdelivr.net"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.12.1/css/all.min.css" type="text/css"><link rel="stylesheet" href="/css/index.css?v=2.1.1"><script>var Stun = window.Stun || {};
+var CONFIG = {
+  root: '/',
+  algolia: undefined,
+  fontIcon: {"prompt":{"success":"fas fa-check-circle","info":"fas fa-arrow-circle-right","warning":"fas fa-exclamation-circle","error":"fas fa-times-circle"},"copyBtn":"fas fa-copy"},
+  sidebar: {"offsetTop":"20px","tocMaxDepth":6},
+  header: {"enable":true,"showOnPost":true,"scrollDownIcon":false},
+  postWidget: {"endText":true},
+  nightMode: {"enable":true},
+  back2top: {"enable":true},
+  codeblock: {"style":"default","highlight":"light","wordWrap":false},
+  reward: false,
+  fancybox: false,
+  zoomImage: {"gapAside":"20px"},
+  galleryWaterfall: undefined,
+  lazyload: false,
+  pjax: undefined,
+  externalLink: {"icon":{"enable":true,"name":"fas fa-external-link-alt"}},
+  shortcuts: undefined,
+  prompt: {"copyButton":"Copy","copySuccess":"Copy Success","copyError":"Copy Error"},
+  sourcePath: {"js":"js","css":"css","images":"images"},
+};
+
+window.CONFIG = CONFIG;</script><meta name="generator" content="Hexo 5.1.1"></head><body><div class="container" id="container"><header class="header" id="header"><div class="header-inner"><nav class="header-nav header-nav--fixed"><div class="header-nav-inner"><div class="header-nav-menubtn"><i class="fas fa-bars"></i></div><div class="header-nav-menu"><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="/"><span class="header-nav-menu-item__icon"><i class="fas fa-home"></i></span><span class="header-nav-menu-item__text">Home</span></a></div><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="/archives/"><span class="header-nav-menu-item__icon"><i class="fas fa-folder-open"></i></span><span class="header-nav-menu-item__text">Archives</span></a></div><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="/categories/"><span class="header-nav-menu-item__icon"><i class="fas fa-layer-group"></i></span><span class="header-nav-menu-item__text">Categories</span></a></div><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="/tags/"><span class="header-nav-menu-item__icon"><i class="fas fa-tags"></i></span><span class="header-nav-menu-item__text">Tags</span></a></div></div><div class="header-nav-mode"><div class="mode"><div class="mode-track"><span class="mode-track-moon"></span><span class="mode-track-sun"></span></div><div class="mode-thumb"></div></div></div></div></nav><div class="header-banner"><div class="header-banner-info"><div class="header-banner-info__title">Hao's blog</div><div class="header-banner-info__subtitle">No pains ,no gains</div></div></div></div></header><main class="main" id="main"><div class="main-inner"><div class="content-wrap" id="content-wrap"><div class="content" id="content"><!-- Just used to judge whether it is an article page--><div id="is-post"></div><div class="post"><header class="post-header"><h1 class="post-title">[ Untitled ]</h1><div class="post-meta"><span class="post-meta-item post-meta-item--createtime"><span class="post-meta-item__icon"><i class="far fa-calendar-plus"></i></span><span class="post-meta-item__info">Created</span><span class="post-meta-item__value">2021-03-15</span></span><span class="post-meta-item post-meta-item--updatetime"><span class="post-meta-item__icon"><i class="far fa-calendar-check"></i></span><span class="post-meta-item__info">Updated</span><span class="post-meta-item__value">2021-03-15</span></span></div></header><div class="post-body"><h1 align = "center">Bind-DLZ + Django   + Mysql  DNS管理平台 </h1>
+系统环境:CentOS 7.6 X64
+
+<p>软件版本: </p>
+<pre><code>  bind-9.11.6.tar.gz  
+  mysql-5.6.16.tar.gz
+  Python 3.6 
+  Django 1.11.x</code></pre>
+<h2 align = "center">一．源码安装配置Bind: </h2>
+
+<pre><code>yum -y install make gcc-c++ cmake bison-devel  ncurses-devel python-devel python-ply bind-utils
+./configure --prefix=/usr/local/bind/ \
+--with-dlz-mysql=/usr/local/mysql \
+--enable-threads=no --enable-largefile \
+--disable-ipv6 --with-openssl=no
+make &amp;&amp; make install</code></pre>
+<p>1.用户添加授权目录</p>
+<pre><code> mkdir -p /usr/local/bind/var/&#123;logs,zones&#125;
+ cd /usr/local/bind/etc/
+ /usr/local/bind/sbin/rndc-confgen &gt; rndc.conf
+ tail -10 rndc.conf | head -9 | sed s/#\ //g &gt; named.conf
+ useradd  -s  /sbin/nologin  named
+ chown  -R named:named /usr/local/bind/        </code></pre>
+<a id="more"></a>
+
+<p>2.配置Bind</p>
+
+        <h5 id="配置主服务器"   >
+          <a href="#配置主服务器" class="heading-link"><i class="fas fa-link"></i></a># 配置主服务器</h5>
+      <pre><code>vim /usr/local/bind/etc/named.conf # 主
+key &quot;rndc-key&quot; &#123;
+   algorithm hmac-md5;
+   secret &quot;mvCUyhyDvNNGywhoVHbSaQ==&quot;;
+&#125;;
+
+# 声明控制通道，用于rndc程序
+controls &#123;
+   inet 127.0.0.1 port 953 
+                 allow &#123; 127.0.0.1; &#125; keys &#123; &quot;rndc-key&quot;; &#125;;
+&#125;;
+
+acl trust-lan &#123;
+        172.0.0.0/8;
+&#125;;
+
+# 通信通道，以访问named统计信息
+statistics-channels &#123;
+    inet 127.0.0.1 port 8653 allow &#123; 127.0.0.1; &#125;;
+&#125;;
+
+options &#123;
+    listen-on port 53 &#123;any;&#125;;         # 开启侦听53端口，any表示接受任意ip连接
+    zone-statistics yes;
+    tcp-clients 50000;
+    dnssec-enable no;
+    dnssec-validation no;
+    datasize unlimited;
+    stacksize unlimited;
+    directory &quot;/usr/local/bind/var&quot;;
+    pid-file &quot;named.pid&quot;;               # named进程的pid
+    dump-file &quot;bind_dump.db&quot;;     # 服务器在收到rndc dump命令时，转储数据到文件的路径
+    statistics-file &quot;/usr/local/bind/var/bind.stats&quot;;   
+    allow-query&#123; trust-lan; &#125;;        # 允许trust-lan ip查询 
+    allow-transfer &#123; 172.20.10.61;   #允许哪些主机从服务器接受传送
+                    172.20.10.62; &#125;;
+    notify yes;                                 # 允许通知同步
+    also-notify &#123; 172.20.10.61;        # 允许通知本服务器
+                 172.20.10.62; &#125;;
+    allow-recursion &#123; trust-lan; &#125;;      # 允许哪些主机可以通过本服务器进行递归查询
+    recursive-clients 35000;
+    forwarders&#123; 114.114.114.114;
+             223.5.5.5;
+             223.6.6.6; 
+             8.8.8.8; &#125;;      # 设置转发的公网ip
+&#125;;
+
+# 指定服务器记录哪些日志，和在哪里记录日志消息
+logging &#123;
+    channel bind_log &#123;
+        file &quot;/usr/local/bind/var/logs/bind.log&quot; versions 3 size 100m;
+        severity debug;
+        print-time yes;
+        print-severity yes;
+        print-category yes;
+    &#125;;
+
+    channel error_log &#123;
+        file &quot;/usr/local/bind/var/logs/error.log&quot; versions 10 size 32m;
+        severity info;
+        print-time yes;
+        print-severity yes;
+        print-category yes;
+    &#125;;
+
+    channel query_log &#123;
+        file &quot;/usr/local/bind/var/logs/query.log&quot; versions 10 size 32m;
+        severity info;
+        print-time yes;
+        print-severity yes;
+        print-category yes;
+    &#125;;
+
+    category default &#123; bind_log; &#125;;
+
+    category queries &#123; query_log; &#125;;
+&#125;;
+
+dlz &quot;Mysql zone&quot; &#123;
+   database &quot;mysql
+   &#123;dbname=db_ops port=3306 host=172.28.10.60 user=op_oss pass=JqIrsM1hVvo8 ssl=false&#125;
+   &#123;select zone from t_dns_records where zone = &#39;$zone$&#39; and status = 1&#125;
+   &#123;select ttl, type, mx_priority, case when lower(type)=&#39;txt&#39; then concat(&#39;\&quot;&#39;, data, &#39;\&quot;&#39;)
+        when lower(type) = &#39;soa&#39; then concat_ws(&#39; &#39;, data, resp_person, serial, refresh, retry, expire, minimum)
+        else data end from t_dns_records where zone = &#39;$zone$&#39; and host = &#39;$record$&#39; and status = 1&#125;
+   &#123;&#125;
+   &#123;select ttl, type, host, mx_priority, case when lower(type)=&#39;txt&#39; then
+        concat(&#39;\&quot;&#39;, data, &#39;\&quot;&#39;) else data end, resp_person, serial, refresh, retry, expire,
+        minimum from t_dns_records where zone = &#39;$zone$&#39; and status = 1&#125;
+   &#123;select zone from t_dns_xfr_table where zone = &#39;$zone$&#39; and client = &#39;$client$&#39; and status = 1&#125;&quot;;
+&#125;;</code></pre>
+
+        <h5 id="配置从服务器"   >
+          <a href="#配置从服务器" class="heading-link"><i class="fas fa-link"></i></a># 配置从服务器</h5>
+      <pre><code>vim /usr/local/bind/etc/named.conf # 从
+key &quot;rndc-key&quot; &#123;
+   algorithm hmac-md5;
+   secret &quot;mvCUyhyDvNNGywhoVHbSaQ==&quot;;
+&#125;;
+
+controls &#123;
+   inet 127.0.0.1 port 953 allow &#123; 127.0.0.1; &#125; keys &#123; &quot;rndc-key&quot;; &#125;;
+&#125;;
+
+acl trust-lan &#123;
+        172.0.0.0/8;
+&#125;;
+
+options &#123;
+    listen-on port 53 &#123;any;&#125;;
+    zone-statistics yes;
+    tcp-clients 50000;
+    dnssec-enable no;
+    dnssec-validation no;
+    datasize unlimited;
+        stacksize unlimited;
+        directory &quot;/usr/local/bind/var&quot;;
+        pid-file &quot;/usr/local/bind/var/bind.pid&quot;;
+        dump-file &quot;/usr/local/bind/var/bind_dump.db&quot;;
+        statistics-file &quot;/usr/local/bind/var/bind.stats&quot;;
+    allow-query&#123; trust-lan; &#125;;
+    allow-transfer &#123; 172.20.10.61; &#125;;
+    notify yes;
+    also-notify &#123; 172.20.10.61; &#125;;
+    recursion yes;
+    allow-recursion &#123; trust-lan; &#125;;
+    recursive-clients 35000;
+    forwarders &#123; 114.114.114.114;
+        8.8.8.8; &#125;;
+&#125;;</code></pre>
+<p>​<br>    logging {<br>        channel bind_log {<br>            file “/usr/local/bind/var/logs/bind.log” versions 3 size 100m;<br>            severity debug;<br>            print-time yes;<br>            print-severity yes;<br>            print-category yes;<br>        };</p>
+<pre><code>    channel error_log &#123;
+        file &quot;/usr/local/bind/var/logs/error.log&quot; versions 10 size 32m;
+        severity info;
+        print-time yes;
+        print-severity yes;
+        print-category yes;
+    &#125;;
+
+    channel query_log &#123;
+        file &quot;/usr/local/bind/var/logs/query.log&quot; versions 10 size 32m;
+        severity info;
+        print-time yes;
+        print-severity yes;
+        print-category yes;
+    &#125;;
+
+    category default &#123; bind_log; &#125;;
+
+    category queries &#123; query_log; &#125;;
+&#125;;
+
+zone &quot;baidu.com&quot; IN &#123;
+    type slave;
+        file &quot;zones/baidu.com.zone&quot;;
+        masterfile-format text;
+        masters&#123; 172.20.10.60; &#125;;
+&#125;;</code></pre>
+
+        <h5 id="启动脚本"   >
+          <a href="#启动脚本" class="heading-link"><i class="fas fa-link"></i></a># 启动脚本</h5>
+      <pre><code>vim /etc/systemd/system/named.service
+[Unit]
+Description=Internet domain name server
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bind/sbin/named -f -u named -4
+ExecReload=/usr/local/bind/sbin/rndc reload
+ExecStop=/usr/local/bind/sbin/rndc stop
+
+[Install]
+WantedBy=multi-user.target
+Alias=bind.service</code></pre>
+
+        <h5 id="启动命令"   >
+          <a href="#启动命令" class="heading-link"><i class="fas fa-link"></i></a># 启动命令</h5>
+      <pre><code>systemctl daemon-reload
+systemctl start named.service</code></pre>
+<h2 align = "center">二．配置Bind-Web 管理平台 </h2>
+
+<p>1.获取代码 </p>
+<pre><code>git  clone  https://github.com/ymx8383521/Bind-Web.git  #git  克隆下来
+cd Bind-Web
+pip install -r  requirement.txt</code></pre>
+<p>2.数据库配置</p>
+<pre><code>    1.)   CREATE DATABASE db_ops CHARACTER SET utf8 COLLATE utf8_general_ci;  #创建数据库
+      grant all privileges on db_ops.* to op_oss@&#39;%&#39; identified by &#39;JqIrsM1hVvo8&#39;
+
+    2.)配置文件devops/settings 里连接数据库
+
+            DATABASES = &#123;
+                &#39;default&#39;: &#123;
+                    &#39;ENGINE&#39;: &#39;django.db.backends.mysql&#39;,
+                    &#39;NAME&#39;:&#39;db_ops&#39;,
+                    &#39;USER&#39;: &#39;op_oss&#39;,
+                    &#39;PASSWORD&#39;: &#39;JqIrsM1hVvo8&#39;,
+                    &#39;HOST&#39;: &#39;127.0.0.1&#39;,
+                    &#39;PORT&#39;:&#39;3306&#39;,
+                &#125;
+            &#125;
+
+    3.)表结构刷到数据库
+            python  manage.py makemigrations 
+            python  manage.py migrate
+            python manage.py  createsuperuser
+
+    4.)运行项目
+            python manage.py  runserver 0.0.0.0:8001
+
+    5.)访问WEB 界面 登录账户就是创建的管理用户
+            http://ip/8001</code></pre>
+<h2 align = "center">三. 针对已有数据库的操作</h2>
+##### # 把新生成的models.py放到app目录下
+
+<pre><code>python manage.py inspectdb &gt; models.py  #需要修改managed = True  
+python manage.py migrate</code></pre>
+
+        <h5 id="数据库构"   >
+          <a href="#数据库构" class="heading-link"><i class="fas fa-link"></i></a># 数据库构</h5>
+      <pre><code>create table `t_dns_records` (
+  `id` bigint(20) not null auto_increment comment &#39;主健&#39;,
+  `zone` varchar(255) not null default &#39;&#39; comment &#39;域名&#39;,
+  `host` varchar(255) not null default &#39;&#39; comment &#39;记录名称&#39;,
+  `type` varchar(255) not null default &#39;&#39; comment &#39;记录类型&#39;,
+  `data` varchar(255) not null default &#39;&#39; comment &#39;记录值&#39;,
+  `ttl` int(11) default null comment &#39;ttl(存活时间)&#39;,
+  `mx_priority` int(11) default null comment &#39;mx优先级&#39;,
+  `refresh` int(11) default null comment &#39;刷新时间间隔&#39;,
+  `retry` int(11)  default null comment &#39;重试时间间隔&#39;,
+  `expire` int(11) default null comment &#39;过期时间&#39;,
+  `minimum` int(11) default null comment &#39;最小时间&#39;,
+  `serial` bigint(20) default null comment &#39;序列号,每次更改配置都会在原来的基础上加1&#39;,
+  `resp_person` varchar(64) default null comment &#39;责任人&#39;,
+  `primary_ns` varchar(64) default null comment &#39;主域名&#39;,
+  `status` tinyint(4) default 1 comment &#39;0:该记录无效, 1:该记录有效&#39;,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT &#39;创建时间&#39;,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT &#39;更新时间&#39;,
+  primary key (`id`),
+  key `ix_zone` (`zone`),
+  key `ix_host` (`host`),
+  key `ix_data` (`data`),
+  key `ix_type` (`type`),
+  key `ix_status` (`status`),
+  key `ix_created_at` (`created_at`),
+  key `ix_updated_at` (`updated_at`)
+) engine=InnoDB default charset=utf8 comment=&#39;DNS解析记录&#39;;
+
+create table `t_dns_xfr_table` (
+  `id` bigint(20) not null auto_increment comment &#39;主健&#39;,
+  `zone` varchar(255) not null default &#39;&#39; comment &#39;域名&#39;,
+  `client` varchar(255) not null default &#39;&#39; comment &#39;BIND SLAVE 客户端&#39;,
+  `status` tinyint(4) default 1 comment &#39;0:该记录无效, 1:该记录有效&#39;,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT &#39;创建时间&#39;,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT &#39;更新时间&#39;,
+  primary key (`id`),
+  key `ix_created_at` (`created_at`),
+  key `ix_updated_at` (`updated_at`)
+) engine=InnoDB default charset=utf8 comment=&#39;DNS授权传送信息&#39;;</code></pre>
+<h2 align = "center">四．Bind-Web使用 </h2>
+1. slave配置zone
+
+
+<pre><code>zone &quot;php.com.&quot; in &#123;
+    type slave;
+    file &quot;zones/php.com&quot;;
+    masterfile-format text;
+    masters&#123; 172.28.10.60; &#125;;
+&#125;;</code></pre>
+<ol start="2">
+<li>Bind-Web平台上操作，首先要创建SOA记录和NS记录</li>
+</ol>
+<pre><code>select * from t_dns_records limit 3;  
++----+-----------+------+------+------------- -+-----+-------------+---------+-------+--------+---------+------------+-------------+------------+--------+---------------------+---------------------+
+| id | zone      | host | type | data          | ttl | mx_priority | refresh | retry | expire | minimum | serial     | resp_person | primary_ns | status | created_at          | updated_at          |
++----+-----------+------+------+---------------+-----+-------------+---------+-------+--------+---------+------------+-------------+------------+--------+---------------------+---------------------+
+|  1 | baidu.com | @    | NS   | ns.baidu.com. |  60 |        NULL |    NULL |  NULL |   NULL |    NULL |       NULL | NULL        | NULL       |      1 | 2019-07-01 11:02:14 | 2019-07-11 19:10:54 |
+|  2 | baidu.com | @    | SOA  | ns            |  60 |        NULL |     300 |  3000 |  86400 |   86400 | 1562898308 | admin       | NULL       |      1 | 2019-07-01 11:02:28 | 2019-07-12 10:25:12 |
+|  3 | baidu.com | xxxx | A    | 172.20.10.72  |  60 |        NULL |    NULL |  NULL |   NULL |    NULL |       NULL | NULL        | NULL       |      1 | 2019-07-01 11:05:44 | 2019-07-11 19:10:54 |
++----+-------- --+------+------+---------------+-----+-------------+---------+-------+--------+---------+------------+-------------+------------+--------+---------------------+---------------------+
+
+select * from t_dns_xfr_table limit 1;  
++----+-----------+--------------+--------+---------------------+---------------------+  
+| id | zone      | client       | status | created_at          | updated_at          |  
++----+-----------+--------------+--------+---------------------+---------------------+  
+|  1 | baidu.com | 172.20.10.61 |      1 | 2019-07-01 11:01:46 | 2019-07-01 11:01:46 |  
++----+-----------+--------------+--------+---------------------+---------------------+    </code></pre>
+<p>原文链接：</p>
+<p>[<span class="exturl"><a class="exturl__link"   target="_blank" rel="noopener" href="https://github.com/ymx8383521/Bind-Web]" >https://github.com/ymx8383521/Bind-Web]</a><span class="exturl__icon"><i class="fas fa-external-link-alt"></i></span></span>: </p>
+</div><footer class="post-footer"><div class="post-ending ending"><div class="ending__text">------ END ------</div></div><div class="post-copyright copyright"><div class="copyright-author"><span class="copyright-author__name">Author: </span><span class="copyright-author__value"><a href="http://zhho.cn">Hao Zhang</a></span></div><div class="copyright-link"><span class="copyright-link__name">Link: </span><span class="copyright-link__value"><a href="http://zhho.cn/2021/03/15/Bind-DLZ%20+%20Django%20+%20Mysql%20DNS%E7%AE%A1%E7%90%86%E5%B9%B3%E5%8F%B0/">http://zhho.cn/2021/03/15/Bind-DLZ%20+%20Django%20+%20Mysql%20DNS%E7%AE%A1%E7%90%86%E5%B9%B3%E5%8F%B0/</a></span></div><div class="copyright-notice"><span class="copyright-notice__name">Copyright: </span><span class="copyright-notice__value">All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en" rel="external nofollow" target="_blank">BY-NC-SA</a> unless stating additionally</span></div></div><nav class="post-paginator paginator"><div class="paginator-next"><a class="paginator-next__link" href="/2021/03/12/LVS%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96%E5%8F%8A%E9%97%AE%E9%A2%98%E6%80%BB%E7%BB%93/"><span class="paginator-prev__text">LVS性能优化及问题总结</span><span class="paginator-next__icon"><i class="fas fa-angle-right"></i></span></a></div></nav></footer></div></div></div><div class="sidebar-wrap" id="sidebar-wrap"><aside class="sidebar" id="sidebar"><div class="sidebar-nav"><span class="sidebar-nav-toc current">Catalog</span><span class="sidebar-nav-ov">Overview</span></div><section class="sidebar-toc"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link"><span class="toc-number">1.</span> <span class="toc-text">Bind-DLZ + Django   + Mysql  DNS管理平台 </span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link"><span class="toc-number">1.1.</span> <span class="toc-text">一．源码安装配置Bind: </span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#%E9%85%8D%E7%BD%AE%E4%B8%BB%E6%9C%8D%E5%8A%A1%E5%99%A8"><span class="toc-number">1.1.0.0.1.</span> <span class="toc-text">
+          # 配置主服务器</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E9%85%8D%E7%BD%AE%E4%BB%8E%E6%9C%8D%E5%8A%A1%E5%99%A8"><span class="toc-number">1.1.0.0.2.</span> <span class="toc-text">
+          # 配置从服务器</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E5%90%AF%E5%8A%A8%E8%84%9A%E6%9C%AC"><span class="toc-number">1.1.0.0.3.</span> <span class="toc-text">
+          # 启动脚本</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E5%90%AF%E5%8A%A8%E5%91%BD%E4%BB%A4"><span class="toc-number">1.1.0.0.4.</span> <span class="toc-text">
+          # 启动命令</span></a></li></ol></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link"><span class="toc-number">1.2.</span> <span class="toc-text">二．配置Bind-Web 管理平台 </span></a></li><li class="toc-item toc-level-2"><a class="toc-link"><span class="toc-number">1.3.</span> <span class="toc-text">三. 针对已有数据库的操作</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#%E6%95%B0%E6%8D%AE%E5%BA%93%E6%9E%84"><span class="toc-number">1.3.0.0.1.</span> <span class="toc-text">
+          # 数据库构</span></a></li></ol></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link"><span class="toc-number">1.4.</span> <span class="toc-text">四．Bind-Web使用 </span></a></li></ol></li></ol></section><!-- ov = overview--><section class="sidebar-ov hide"><div class="sidebar-ov-author"><div class="sidebar-ov-author__avatar"><img class="sidebar-ov-author__avatar_img" src="/images/icons/stun-logo.svg" alt="avatar"></div><p class="sidebar-ov-author__text">Meteor across</p></div><div class="sidebar-ov-state"><a class="sidebar-ov-state-item sidebar-ov-state-item--posts" href="/archives/"><div class="sidebar-ov-state-item__count">27</div><div class="sidebar-ov-state-item__name">Archives</div></a><a class="sidebar-ov-state-item sidebar-ov-state-item--categories" href="/categories/"><div class="sidebar-ov-state-item__count">0</div><div class="sidebar-ov-state-item__name">Categories</div></a><a class="sidebar-ov-state-item sidebar-ov-state-item--tags" href="/tags/"><div class="sidebar-ov-state-item__count">1</div><div class="sidebar-ov-state-item__name">Tags</div></a></div><div class="sidebar-ov-cc"><a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en" target="_blank" rel="noopener" data-popover="Creative Commons" data-popover-pos="up"><img src="/images/cc-by-nc-sa.svg"></a></div></section><div class="sidebar-reading"><div class="sidebar-reading-info"><span class="sidebar-reading-info__text">You have read </span><span class="sidebar-reading-info__num">0</span></div><div class="sidebar-reading-line"></div></div></aside></div><div class="clearfix"></div></div></main><footer class="footer" id="footer"><div class="footer-inner"><div><span>Copyright © 2021</span><span class="footer__icon"><i class="fas fa-heart"></i></span><span>Hao Zhang</span></div><div><span>Powered by <a href="http://hexo.io/" title="Hexo" target="_blank" rel="noopener">Hexo</a></span><span> v5.1.1</span><span class="footer__devider">|</span><span>Theme - <a href="https://github.com/liuyib/hexo-theme-stun/" title="Stun" target="_blank" rel="noopener">Stun</a></span><span> v2.1.1</span></div></div></footer><div class="loading-bar" id="loading-bar"><div class="loading-bar__progress"></div></div><div class="back2top" id="back2top"><span class="back2top__icon"><i class="fas fa-rocket"></i></span></div></div><script src="https://cdn.jsdelivr.net/npm/jquery@v3.4.1/dist/jquery.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-animate@1.5.2/velocity.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-animate@1.5.2/velocity.ui.min.js"></script><script src="/js/utils.js?v=2.1.1"></script><script src="/js/stun-boot.js?v=2.1.1"></script><script src="/js/scroll.js?v=2.1.1"></script><script src="/js/header.js?v=2.1.1"></script><script src="/js/sidebar.js?v=2.1.1"></script></body></html>
